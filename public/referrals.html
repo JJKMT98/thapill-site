@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THAPILL — Referrals</title>
+<link rel="icon" type="image/png" sizes="32x32" href="thapill-assets/favicon-32.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .ref-page { min-height: 100vh; padding: 100px 48px 60px; max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
+  .ref-nav { position: fixed; top: 0; width: 100%; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 16px 48px; background: rgba(3,3,6,0.92); border-bottom: 1px solid var(--border); backdrop-filter: blur(30px); }
+  .ref-nav a { color: var(--text-dim); text-decoration: none; font-size: 13px; }
+  .ref-nav a:hover { color: var(--electric); }
+  .ref-nav-logo { height: 22px; opacity: 0.9; }
+
+  .ref-hero { text-align: center; margin-bottom: 48px; }
+  .ref-hero h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; }
+  .ref-hero p { color: var(--text-dim); font-size: 14px; }
+
+  /* Code display */
+  .ref-code-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 32px; text-align: center; margin-bottom: 32px; }
+  .ref-code-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; margin-bottom: 12px; }
+  .ref-code { font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 700; color: var(--electric); letter-spacing: 3px; margin-bottom: 16px; }
+  .ref-link { font-size: 13px; color: var(--text-dim); word-break: break-all; margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; }
+
+  /* Share buttons */
+  .share-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .share-btn { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: transform 0.2s, border-color 0.2s; text-decoration: none; font-family: 'Space Grotesk', sans-serif; }
+  .share-btn:hover { transform: translateY(-2px); border-color: var(--electric); }
+  .share-btn.copied { background: var(--electric); color: var(--bg); border-color: var(--electric); }
+
+  /* Stats */
+  .ref-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 40px; }
+  .ref-stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; opacity: 0; transform: translateY(20px); transition: opacity 0.5s, transform 0.5s; }
+  .ref-stat.visible { opacity: 1; transform: translateY(0); }
+  .ref-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+  .ref-stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Referral list */
+  .section-label { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .section-label::before { content: '//'; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+  .ref-list { margin-bottom: 40px; }
+  .ref-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
+  .ref-item-name { font-size: 14px; }
+  .ref-item-date { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .ref-item-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; }
+  .ref-item-status.signed-up { color: var(--neon-blue); background: rgba(68,136,255,0.1); }
+  .ref-item-status.first-purchase { color: var(--electric); background: rgba(0,255,136,0.1); }
+  .ref-item-status.rewarded { color: var(--neon-purple); background: rgba(119,51,255,0.1); }
+
+  /* Leaderboard */
+  .lb-list { }
+  .lb-item { display: flex; align-items: center; gap: 16px; padding: 14px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
+  .lb-rank { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--text-dim); min-width: 32px; }
+  .lb-rank.top { color: var(--electric); }
+  .lb-name { flex: 1; font-size: 14px; }
+  .lb-count { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--neon-purple); }
+  .lb-item.me { border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.03); }
+
+  .empty-state { text-align: center; padding: 32px; color: var(--text-dim); background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
+
+  @media (max-width: 768px) {
+    .ref-page { padding: 90px 20px 40px; }
+    .ref-nav { padding: 14px 20px; }
+    .ref-stats { grid-template-columns: repeat(2, 1fr); }
+    .ref-code { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<nav class="ref-nav">
+  <a href="/"><img src="thapill-assets/logo.png" alt="THAPILL" class="ref-nav-logo"></a>
+  <a href="/dashboard">&larr; Dashboard</a>
+</nav>
+
+<div class="ref-page">
+  <div class="ref-hero">
+    <h1 id="refTitle">Share thaPill, Earn Points</h1>
+    <p>Give your friends thaPill. You both earn rewards when they buy.</p>
+  </div>
+
+  <div class="ref-code-wrap">
+    <div class="ref-code-label">Your Referral Code</div>
+    <div class="ref-code" id="refCode"></div>
+    <div class="ref-link" id="refLink"></div>
+    <div class="share-btns">
+      <button class="share-btn" id="copyBtn">Copy Link</button>
+      <a class="share-btn" id="waBtn" target="_blank">WhatsApp</a>
+      <a class="share-btn" id="twBtn" target="_blank">Twitter / X</a>
+      <a class="share-btn" id="emBtn">Email</a>
+    </div>
+  </div>
+
+  <div class="ref-stats" id="refStats">
+    <div class="ref-stat" style="transition-delay:0s"><div class="ref-stat-val" id="statTotal">0</div><div class="ref-stat-label">Total Referrals</div></div>
+    <div class="ref-stat" style="transition-delay:0.1s"><div class="ref-stat-val" id="statSignedUp">0</div><div class="ref-stat-label">Signed Up</div></div>
+    <div class="ref-stat" style="transition-delay:0.2s"><div class="ref-stat-val" id="statPurchased">0</div><div class="ref-stat-label">Purchased</div></div>
+    <div class="ref-stat" style="transition-delay:0.3s"><div class="ref-stat-val" id="statPoints" style="color:var(--neon-purple)">0</div><div class="ref-stat-label">Points Earned</div></div>
+  </div>
+
+  <div class="section-label">Your Referrals</div>
+  <div class="ref-list" id="refList"></div>
+
+  <div class="section-label">Leaderboard</div>
+  <div class="lb-list" id="lbList"></div>
+</div>
+
+<script>
+(function() {
+  async function load() {
+    const res = await fetch('/api/referrals');
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    const data = await res.json();
+
+    const lbRes = await fetch('/api/referrals/leaderboard');
+    const lbData = await lbRes.json();
+
+    render(data, lbData.leaderboard);
+  }
+
+  function render(data, leaderboard) {
+    document.getElementById('refCode').textContent = data.referral_code;
+    document.getElementById('refLink').textContent = data.link;
+
+    const msg = encodeURIComponent("I've been using thaPill for focus and it's insane. Try it: " + data.link);
+    document.getElementById('waBtn').href = 'https://wa.me/?text=' + msg;
+    document.getElementById('twBtn').href = 'https://twitter.com/intent/tweet?text=' + msg;
+    document.getElementById('emBtn').href = 'mailto:?subject=Try%20thaPill&body=' + msg;
+
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(data.link).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy Link'; btn.classList.remove('copied'); }, 2000);
+      });
+    });
+
+    // Stats
+    document.getElementById('statTotal').textContent = data.stats.total;
+    document.getElementById('statSignedUp').textContent = data.stats.signedUp;
+    document.getElementById('statPurchased').textContent = data.stats.purchased;
+    document.getElementById('statPoints').textContent = data.stats.totalPoints;
+    setTimeout(() => {
+      document.querySelectorAll('.ref-stat').forEach(s => s.classList.add('visible'));
+    }, 100);
+
+    // Referral list
+    const list = document.getElementById('refList');
+    if (!data.referrals.length) {
+      list.innerHTML = '<div class="empty-state">No referrals yet. Share your link to start earning!</div>';
+    } else {
+      list.innerHTML = data.referrals.map(r => {
+        const date = new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const statusCls = r.status.replace(' ', '-');
+        return '<div class="ref-item"><div><div class="ref-item-name">' + r.first_name + '</div><div class="ref-item-date">' + date + '</div></div><span class="ref-item-status ' + statusCls + '">' + r.status.replace('-', ' ') + '</span></div>';
+      }).join('');
+    }
+
+    // Leaderboard
+    const lb = document.getElementById('lbList');
+    if (!leaderboard.length) {
+      lb.innerHTML = '<div class="empty-state">No leaderboard data yet.</div>';
+    } else {
+      lb.innerHTML = leaderboard.map(r =>
+        '<div class="lb-item"><span class="lb-rank' + (r.rank <= 3 ? ' top' : '') + '">#' + r.rank + '</span><span class="lb-name">' + r.name + '</span><span class="lb-count">' + r.count + ' referrals</span></div>'
+      ).join('');
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

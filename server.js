@@ -14,6 +14,7 @@ const dashboardRoutes = require('./src/routes/dashboard');
 const cartRoutes = require('./src/routes/cart');
 const checkoutRoutes = require('./src/routes/checkout');
 const rewardsRoutes = require('./src/routes/rewards');
+const referralRoutes = require('./src/routes/referrals');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,6 +61,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/rewards', rewardsRoutes);
+app.use('/api/referrals', referralRoutes);
 
 app.get('/order/success/:orderNumber', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'order-success.html'));
