@@ -298,20 +298,20 @@
     .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin-left: auto; margin-right: auto; }
     .hero { flex-direction: column; text-align: center; }
     .hero-content { max-width: 100%; }
-    .hero-product-img { width: 300px; clip-path: ellipse(42% 45% at 50% 50%); }
+    .hero-product-img { width: 300px; -webkit-clip-path: ellipse(42% 45% at 50% 50%); clip-path: ellipse(42% 45% at 50% 50%); }
     .product-showcase { grid-template-columns: 1fr; text-align: center; }
     .showcase-visual { min-height: 400px; }
     .hero-energy-ring { display: none; }
-    .pill-hero-img { clip-path: ellipse(38% 42% at 50% 50%); mix-blend-mode: lighten; }
-    .showcase-bottle-img { clip-path: ellipse(42% 45% at 50% 50%); }
-    .showcase-box-img { clip-path: ellipse(44% 44% at 50% 50%); }
+    .pill-hero-img { -webkit-clip-path: ellipse(38% 42% at 50% 50%); clip-path: ellipse(38% 42% at 50% 50%); mix-blend-mode: lighten; }
+    .showcase-bottle-img { -webkit-clip-path: ellipse(42% 45% at 50% 50%); clip-path: ellipse(42% 45% at 50% 50%); }
+    .showcase-box-img { -webkit-clip-path: ellipse(44% 44% at 50% 50%); clip-path: ellipse(44% 44% at 50% 50%); }
   }
   @media (max-width: 640px) {
     nav { padding: 16px 20px; }
     .nav-links a:not(.mag-btn) { display: none; }
     .hero { padding: 120px 20px 80px; }
     .hero h1 { letter-spacing: -1px; }
-    .hero-product-img { width: 260px; clip-path: ellipse(40% 44% at 50% 50%); }
+    .hero-product-img { width: 260px; -webkit-clip-path: ellipse(40% 44% at 50% 50%); clip-path: ellipse(40% 44% at 50% 50%); }
     .float-badges { flex-direction: column; gap: 12px; align-items: center; }
     .ingredient-grid { grid-template-columns: 1fr; }
     .pill-section,.ingredients,.pricing,.social-strip,.final-cta,.product-showcase { padding: 80px 20px; }
@@ -319,10 +319,10 @@
     .social-grid { flex-direction: column; align-items: center; }
     .pill-cursor,.cursor-aura,.scan-line { display: none; }
     body { cursor: auto; }
-    .showcase-bottle-img { width: 240px; clip-path: ellipse(40% 44% at 50% 50%); }
-    .showcase-box-img { width: 140px; right: -10px; clip-path: ellipse(42% 42% at 50% 50%); }
+    .showcase-bottle-img { width: 240px; -webkit-clip-path: ellipse(40% 44% at 50% 50%); clip-path: ellipse(40% 44% at 50% 50%); }
+    .showcase-box-img { width: 140px; right: -10px; -webkit-clip-path: ellipse(42% 42% at 50% 50%); clip-path: ellipse(42% 42% at 50% 50%); }
     .pill-orbit-3 { display: none; }
-    .pill-hero-img { width: 250px; clip-path: ellipse(36% 40% at 50% 50%); mix-blend-mode: lighten; }
+    .pill-hero-img { width: 250px; -webkit-clip-path: ellipse(36% 40% at 50% 50%); clip-path: ellipse(36% 40% at 50% 50%); mix-blend-mode: lighten; }
     .pill-hero-img-wrap { width: 280px; height: 280px; }
     .pill-section { padding: 100px 20px; min-height: auto; }
     #heroWord { min-width: 5em; }
