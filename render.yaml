@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: thapill-site
+    runtime: node
+    region: frankfurt
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: hello@thapill.com
+      - key: BASE_URL
+        value: https://thapill-site.onrender.com

@@ -26,6 +26,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
 
 app.use(
   helmet({
