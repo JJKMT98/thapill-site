@@ -1,10 +1,11 @@
 const db = require('../src/models/db');
 
+// thaPill is a single product — these are 3 purchase options (one-time, subscription, bulk).
 const products = [
   {
     slug: 'try-it',
-    name: 'Try It',
-    description: '30 capsules — one month supply. No commitment, no subscription. Just try it.',
+    name: 'thaPill — Try It',
+    description: '1 bottle (30 capsules). One-time purchase, no commitment.',
     price_pence: 4000,
     compare_at_pence: null,
     type: 'one-time',
@@ -14,8 +15,8 @@ const products = [
   },
   {
     slug: 'lock-in',
-    name: 'Lock In',
-    description: '30 capsules delivered every month. Cancel anytime. The most popular choice.',
+    name: 'thaPill — Lock In',
+    description: '1 bottle (30 capsules) delivered monthly. Cancel anytime.',
     price_pence: 2500,
     compare_at_pence: 4000,
     type: 'subscription',
@@ -25,8 +26,8 @@ const products = [
   },
   {
     slug: '3-month-bulk',
-    name: '3-Month Bulk',
-    description: '90 capsules — three month supply in one order. Best value per capsule.',
+    name: 'thaPill — 3-Month Bulk',
+    description: '3 bottles (90 capsules). Best value — one payment, three months sorted.',
     price_pence: 6500,
     compare_at_pence: 12000,
     type: 'one-time',
