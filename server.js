@@ -16,6 +16,8 @@ const checkoutRoutes = require('./src/routes/checkout');
 const rewardsRoutes = require('./src/routes/rewards');
 const referralRoutes = require('./src/routes/referrals');
 const trackingRoutes = require('./src/routes/tracking');
+const chatRoutes = require('./src/routes/chat');
+const { initSocket } = require('./src/services/socket');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -72,6 +74,8 @@ app.get('/tracking/:orderNumber', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'tracking.html'));
 });
 
+app.use('/api/chat', chatRoutes);
+
 app.get('/order/success/:orderNumber', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'order-success.html'));
 });
@@ -91,7 +95,12 @@ app.use((err, _req, res, _next) => {
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => {
+  const http = require('http');
+  const { Server } = require('socket.io');
+  const server = http.createServer(app);
+  const io = new Server(server);
+  initSocket(io);
+  server.listen(PORT, () => {
     console.log(`thaPill server listening on http://localhost:${PORT}`);
   });
 }
