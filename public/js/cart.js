@@ -5,7 +5,7 @@
 <div class="cart-panel" id="cartPanel">
   <div class="cart-header">
     <h3>Your Cart</h3>
-    <button class="cart-close" id="cartClose">&times;</button>
+    <button class="cart-close" id="cartClose" title="Continue shopping">&times;</button>
   </div>
   <div class="cart-body" id="cartBody">
     <div class="cart-empty" id="cartEmpty">
@@ -21,7 +21,8 @@
       <div class="cart-summary-row"><span>Shipping</span><span class="cart-free">Free</span></div>
       <div class="cart-summary-row cart-total"><span>Total</span><span id="cartTotal">£0.00</span></div>
     </div>
-    <a href="/checkout" class="cart-checkout-btn" id="cartCheckoutBtn">Checkout</a>
+    <div class="cart-ctas" id="cartCtas"></div>
+    <button class="cart-continue" id="cartContinue">Continue shopping</button>
   </div>
 </div>`;
 
@@ -66,8 +67,19 @@
 .cart-summary-row.cart-total { color: var(--text); font-size: 18px; font-weight: 700; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .cart-total span:last-child { color: var(--electric); }
 .cart-free { color: var(--electric); }
-.cart-checkout-btn { display: block; width: 100%; padding: 14px; background: var(--electric); color: var(--bg); border: none; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 16px; }
-.cart-checkout-btn:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(0,255,136,0.3); }
+.cart-ctas { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.cart-cta { display: block; width: 100%; padding: 13px; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; border: 1px solid transparent; }
+.cart-cta.primary { background: var(--electric); color: var(--bg); border-color: var(--electric); }
+.cart-cta.primary:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(0,255,136,0.3); }
+.cart-cta.secondary { background: transparent; color: var(--text); border-color: var(--border); }
+.cart-cta.secondary:hover { border-color: var(--electric); color: var(--electric); }
+.cart-cta.express { background: #000; color: var(--text); border-color: var(--border); display: flex; align-items: center; justify-content: center; gap: 8px; }
+.cart-cta.express:hover { border-color: var(--electric); }
+.cart-cta.express .cart-cta-sub { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+.cart-cta-divider { display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-size: 11px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 1px; margin: 4px 0; }
+.cart-cta-divider::before, .cart-cta-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.cart-continue { background: none; border: none; color: var(--text-dim); font-size: 12px; cursor: pointer; width: 100%; padding: 10px; margin-top: 8px; font-family: 'Space Grotesk', sans-serif; transition: color 0.2s; }
+.cart-continue:hover { color: var(--electric); }
 @media (max-width: 480px) { .cart-panel { width: 100vw; } }
 `;
   document.head.appendChild(STYLE);
@@ -84,11 +96,22 @@
   const cartFooter = document.getElementById('cartFooter');
   const cartSubtotal = document.getElementById('cartSubtotal');
   const cartTotal = document.getElementById('cartTotal');
+  const cartCtas = document.getElementById('cartCtas');
+  const cartContinue = document.getElementById('cartContinue');
+
+  let authState = null;
+  function checkAuth() {
+    return fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
+      authState = d && d.user ? d.user : null;
+      return authState;
+    }).catch(() => { authState = null; return null; });
+  }
 
   function open() { overlay.classList.add('open'); panel.classList.add('open'); document.body.style.overflow = 'hidden'; }
   function close() { overlay.classList.remove('open'); panel.classList.remove('open'); document.body.style.overflow = ''; }
   overlay.addEventListener('click', close);
   document.getElementById('cartClose').addEventListener('click', close);
+  cartContinue.addEventListener('click', close);
 
   let badge = null;
 
@@ -113,12 +136,30 @@
   function fmt(pence) { return '£' + (pence / 100).toFixed(2); }
 
   async function refresh() {
-    try {
-      const res = await fetch('/api/cart');
-      const data = await res.json();
-      renderItems(data.items, data.total_pence);
-      updateBadge(data.items.reduce((s, i) => s + i.quantity, 0));
-    } catch { /* silent */ }
+    const [cartRes] = await Promise.all([
+      fetch('/api/cart').then(r => r.ok ? r.json() : Promise.reject(new Error('cart fetch failed'))),
+      checkAuth(),
+    ]).catch(() => [{ items: [], total_pence: 0 }, null]);
+    const data = cartRes || { items: [], total_pence: 0 };
+    renderItems(data.items, data.total_pence);
+    updateBadge(data.items.reduce((s, i) => s + i.quantity, 0));
+  }
+
+  function renderCtas() {
+    if (authState) {
+      cartCtas.innerHTML = `
+        <a href="/checkout" class="cart-cta primary">Checkout</a>
+        <a href="/checkout?express=1" class="cart-cta express" title="Uses your saved shipping address">
+          <span>Express Checkout</span>
+          <span class="cart-cta-sub">· saved address</span>
+        </a>`;
+    } else {
+      cartCtas.innerHTML = `
+        <a href="/register?next=/checkout" class="cart-cta primary">Create Account &amp; Checkout</a>
+        <a href="/checkout" class="cart-cta secondary">Checkout as Guest</a>
+        <div class="cart-cta-divider">or log in</div>
+        <a href="/login?next=/checkout" class="cart-cta secondary">Log In</a>`;
+    }
   }
 
   function renderItems(items, total) {
@@ -132,6 +173,7 @@
     cartFooter.style.display = '';
     cartSubtotal.textContent = fmt(total);
     cartTotal.textContent = fmt(total);
+    renderCtas();
 
     cartItems.innerHTML = items.map(i => `
       <div class="cart-item" data-id="${i.id}">
@@ -183,10 +225,28 @@
   window.thaPillCart = {
     open, close, refresh,
     async add(productId, qty = 1) {
-      await fetch('/api/cart/add', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({product_id: productId, quantity: qty}) });
-      refresh();
+      let res;
+      try {
+        res = await fetch('/api/cart/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: productId, quantity: qty }),
+        });
+      } catch (e) {
+        throw new Error('Network error — please try again');
+      }
+      if (!res.ok) {
+        let msg = 'Could not add to cart';
+        try { const body = await res.json(); if (body.error) msg = body.error; } catch {}
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      renderItems(data.items, data.total_pence);
+      updateBadge(data.items.reduce((s, i) => s + i.quantity, 0));
+      await checkAuth();
+      if (data.items.length) renderCtas();
       open();
-    }
+    },
   };
 
   // Init on DOM ready

@@ -283,7 +283,10 @@
         return;
       }
 
-      window.location.href = '/dashboard';
+      const next = new URLSearchParams(window.location.search).get('next');
+      // Merge any guest cart into the new account before redirecting
+      try { await fetch('/api/cart/merge', { method: 'POST' }); } catch {}
+      window.location.href = next || '/dashboard';
     } catch {
       globalError.textContent = 'Network error — please try again';
       globalError.classList.add('visible');
