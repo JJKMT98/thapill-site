@@ -6,17 +6,17 @@ const Order = require('../models/order');
 const Points = require('../models/points');
 const Referral = require('../models/referral');
 
-router.get('/', requireAuth, (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   const userId = req.user.id;
 
-  const orders = Order.findByUser(userId, 5);
-  const orderCount = Order.countByUser(userId);
-  const pointsHistory = Points.history(userId, 10);
-  const referralCount = Referral.countByReferrer(userId);
+  const [orders, orderCount, pointsHistory, referralCount] = await Promise.all([
+    Order.findByUser(userId, 5),
+    Order.countByUser(userId),
+    Points.history(userId, 10),
+    Referral.countByReferrer(userId),
+  ]);
 
-  const activeSubscription = orders.find(
-    (o) => o.status !== 'cancelled' && orders.length > 0
-  );
+  const activeSubscription = orders.find((o) => o.status !== 'cancelled' && orders.length > 0);
 
   const { password_hash: _, ...user } = req.user;
 

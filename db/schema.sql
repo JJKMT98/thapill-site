@@ -1,8 +1,8 @@
--- thaPill database schema
--- Run once on first boot; guarded by IF NOT EXISTS so it's safe to re-run.
+-- thaPill Postgres schema
+-- Safe to re-run; guarded by IF NOT EXISTS throughout.
 
 CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     uid TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
@@ -15,12 +15,12 @@ CREATE TABLE IF NOT EXISTS users (
     points_balance INTEGER DEFAULT 0,
     tier TEXT DEFAULT 'starter',
     email_verified INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS addresses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     label TEXT DEFAULT 'home',
     line1 TEXT NOT NULL,
@@ -30,11 +30,11 @@ CREATE TABLE IF NOT EXISTS addresses (
     postcode TEXT NOT NULL,
     country TEXT DEFAULT 'GB',
     is_default INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     slug TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
@@ -45,22 +45,23 @@ CREATE TABLE IF NOT EXISTS products (
     stock INTEGER DEFAULT 1000,
     image_url TEXT,
     active INTEGER DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS cart_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     session_id TEXT,
     product_id INTEGER NOT NULL REFERENCES products(id),
     quantity INTEGER DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, product_id),
-    UNIQUE(session_id, product_id)
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+-- Postgres partial unique indexes (SQLite's combined UNIQUE wouldn't work across NULLs)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_cart_user_product ON cart_items (user_id, product_id) WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_cart_session_product ON cart_items (session_id, product_id) WHERE session_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     order_number TEXT UNIQUE NOT NULL,
     user_id INTEGER REFERENCES users(id),
     address_id INTEGER REFERENCES addresses(id),
@@ -74,12 +75,12 @@ CREATE TABLE IF NOT EXISTS orders (
     stripe_payment_intent TEXT,
     stripe_session_id TEXT,
     notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     order_id INTEGER NOT NULL REFERENCES orders(id),
     product_id INTEGER NOT NULL REFERENCES products(id),
     quantity INTEGER NOT NULL,
@@ -88,58 +89,57 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 CREATE TABLE IF NOT EXISTS shipments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     order_id INTEGER NOT NULL REFERENCES orders(id),
     carrier TEXT DEFAULT 'royal-mail',
     tracking_number TEXT,
     tracking_url TEXT,
     status TEXT DEFAULT 'label-created',
     estimated_delivery DATE,
-    shipped_at DATETIME,
-    delivered_at DATETIME,
+    shipped_at TIMESTAMPTZ,
+    delivered_at TIMESTAMPTZ,
     status_history TEXT DEFAULT '[]',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS points_ledger (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     amount INTEGER NOT NULL,
     type TEXT NOT NULL,
     description TEXT,
     reference_id INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS referrals (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     referrer_id INTEGER NOT NULL REFERENCES users(id),
     referred_id INTEGER NOT NULL REFERENCES users(id),
     referral_code TEXT NOT NULL,
     status TEXT DEFAULT 'signed-up',
     reward_points INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS chat_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     room_id TEXT NOT NULL,
     user_id INTEGER REFERENCES users(id),
     sender TEXT NOT NULL,
     message TEXT NOT NULL,
-    read_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     data TEXT,
-    expires_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for common lookups
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_uid ON users(uid);
 CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code);

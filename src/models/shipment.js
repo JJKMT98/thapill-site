@@ -1,39 +1,28 @@
-const db = require('./db');
-
-const stmts = {
-  findById:    db.prepare('SELECT * FROM shipments WHERE id = ?'),
-  findByOrder: db.prepare('SELECT * FROM shipments WHERE order_id = ?'),
-
-  create: db.prepare(`
-    INSERT INTO shipments (order_id, carrier, tracking_number, tracking_url, estimated_delivery)
-    VALUES (@order_id, @carrier, @tracking_number, @tracking_url, @estimated_delivery)
-  `),
-
-  updateStatus: db.prepare(`
-    UPDATE shipments SET status = ?, status_history = ?, shipped_at = COALESCE(shipped_at, CASE WHEN ? IN ('in-transit','out-for-delivery','delivered') THEN CURRENT_TIMESTAMP END)
-    WHERE id = ?
-  `),
-
-  markDelivered: db.prepare('UPDATE shipments SET status = ?, delivered_at = CURRENT_TIMESTAMP WHERE id = ?'),
-
-  setTracking: db.prepare('UPDATE shipments SET tracking_number = ?, tracking_url = ? WHERE id = ?'),
-};
+const { one, run } = require('./db');
 
 module.exports = {
-  findById:    (id) => stmts.findById.get(id),
-  findByOrder: (orderId) => stmts.findByOrder.get(orderId),
+  findById:    (id) => one('SELECT * FROM shipments WHERE id = $1', [id]),
+  findByOrder: (orderId) => one('SELECT * FROM shipments WHERE order_id = $1', [orderId]),
 
-  create(data) {
-    const info = stmts.create.run(data);
-    return stmts.findById.get(info.lastInsertRowid);
-  },
+  create: (data) =>
+    one(
+      `INSERT INTO shipments (order_id, carrier, tracking_number, tracking_url, estimated_delivery)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [data.order_id, data.carrier, data.tracking_number, data.tracking_url, data.estimated_delivery]
+    ),
 
-  updateStatus(id, status, historyJson) {
+  updateStatus: (id, status, historyJson) => {
     if (status === 'delivered') {
-      return stmts.markDelivered.run(status, id);
+      return run('UPDATE shipments SET status = $1, delivered_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
     }
-    return stmts.updateStatus.run(status, historyJson, status, id);
+    return run(
+      `UPDATE shipments SET status = $1, status_history = $2,
+       shipped_at = COALESCE(shipped_at, CASE WHEN $1 IN ('in-transit','out-for-delivery','delivered') THEN CURRENT_TIMESTAMP END)
+       WHERE id = $3`,
+      [status, historyJson, id]
+    );
   },
 
-  setTracking: (id, number, url) => stmts.setTracking.run(number, url, id),
+  setTracking: (id, number, url) =>
+    run('UPDATE shipments SET tracking_number = $1, tracking_url = $2 WHERE id = $3', [number, url, id]),
 };

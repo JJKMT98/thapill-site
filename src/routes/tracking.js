@@ -7,12 +7,14 @@ const { requireAuth } = require('../middleware/auth');
 
 const STATUSES = ['order-placed', 'processing', 'shipped', 'in-transit', 'out-for-delivery', 'delivered'];
 
-router.get('/:orderNumber', (req, res) => {
-  const order = Order.findByNumber(req.params.orderNumber);
+router.get('/:orderNumber', async (req, res) => {
+  const order = await Order.findByNumber(req.params.orderNumber);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
-  const items = Order.getItems(order.id);
-  const shipment = Shipment.findByOrder(order.id);
+  const [items, shipment] = await Promise.all([
+    Order.getItems(order.id),
+    Shipment.findByOrder(order.id),
+  ]);
 
   const statusIndex = shipment
     ? STATUSES.indexOf(shipment.status)
@@ -45,18 +47,18 @@ router.get('/:orderNumber', (req, res) => {
   });
 });
 
-router.post('/admin/:orderNumber/status', requireAuth, (req, res) => {
+router.post('/admin/:orderNumber/status', requireAuth, async (req, res) => {
   if (req.user.email !== (process.env.ADMIN_EMAIL || 'hello@thapill.com')) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
   const { status, tracking_number, tracking_url, carrier, estimated_delivery, detail } = req.body;
-  const order = Order.findByNumber(req.params.orderNumber);
+  const order = await Order.findByNumber(req.params.orderNumber);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
-  let shipment = Shipment.findByOrder(order.id);
+  let shipment = await Shipment.findByOrder(order.id);
   if (!shipment) {
-    shipment = Shipment.create({
+    shipment = await Shipment.create({
       order_id: order.id,
       carrier: carrier || 'royal-mail',
       tracking_number: tracking_number || null,
@@ -65,15 +67,17 @@ router.post('/admin/:orderNumber/status', requireAuth, (req, res) => {
     });
   }
 
-  if (tracking_number) Shipment.setTracking(shipment.id, tracking_number, tracking_url || null);
+  if (tracking_number) await Shipment.setTracking(shipment.id, tracking_number, tracking_url || null);
 
   const history = JSON.parse(shipment.status_history || '[]');
   history.push({ status, timestamp: new Date().toISOString(), detail: detail || null });
 
-  Shipment.updateStatus(shipment.id, status, JSON.stringify(history));
+  await Shipment.updateStatus(shipment.id, status, JSON.stringify(history));
 
-  const orderStatus = status === 'delivered' ? 'delivered' : (status === 'shipped' || status === 'in-transit' || status === 'out-for-delivery') ? 'shipped' : order.status;
-  Order.updateStatus(order.id, orderStatus);
+  const orderStatus = status === 'delivered' ? 'delivered'
+    : (status === 'shipped' || status === 'in-transit' || status === 'out-for-delivery') ? 'shipped'
+    : order.status;
+  await Order.updateStatus(order.id, orderStatus);
 
   res.json({ ok: true, status });
 });

@@ -1,4 +1,5 @@
-const db = require('../src/models/db');
+require('dotenv').config();
+const { run, one, init, pool } = require('../src/models/db');
 
 // thaPill is a single product — these are 3 purchase options (one-time, subscription, bulk).
 const products = [
@@ -37,16 +38,22 @@ const products = [
   },
 ];
 
-const insert = db.prepare(`
-  INSERT OR IGNORE INTO products (slug, name, description, price_pence, compare_at_pence, type, subscription_interval_days, stock, image_url)
-  VALUES (@slug, @name, @description, @price_pence, @compare_at_pence, @type, @subscription_interval_days, @stock, @image_url)
-`);
+async function seed() {
+  await init();
+  for (const p of products) {
+    await run(
+      `INSERT INTO products (slug, name, description, price_pence, compare_at_pence, type, subscription_interval_days, stock, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (slug) DO NOTHING`,
+      [p.slug, p.name, p.description, p.price_pence, p.compare_at_pence, p.type, p.subscription_interval_days, p.stock, p.image_url]
+    );
+  }
+  const { total } = await one('SELECT COUNT(*)::int as total FROM products');
+  console.log(`Seed complete — ${total} products in database`);
+}
 
-const seedAll = db.transaction(() => {
-  for (const p of products) insert.run(p);
-});
+module.exports = { seed };
 
-seedAll();
-
-const count = db.prepare('SELECT COUNT(*) as total FROM products').get().total;
-console.log(`Seed complete — ${count} products in database`);
+if (require.main === module) {
+  seed().then(() => pool.end()).catch((e) => { console.error(e); process.exit(1); });
+}

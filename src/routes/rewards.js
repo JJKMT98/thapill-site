@@ -19,9 +19,9 @@ const EARN_ACTIONS = [
 
 router.use(requireAuth);
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const userId = req.user.id;
-  const lifetimeEarned = Points.lifetimeEarned(userId);
+  const lifetimeEarned = await Points.lifetimeEarned(userId);
   const balance = req.user.points_balance;
 
   let currentTier = TIERS[0];
@@ -34,12 +34,14 @@ router.get('/', (req, res) => {
     }
   }
 
-  const signupDone = Points.totalByType(userId, 'signup') > 0;
-  const firstPurchaseDone = Points.totalByType(userId, 'purchase') > 0;
+  const [signupTotal, purchaseTotal] = await Promise.all([
+    Points.totalByType(userId, 'signup'),
+    Points.totalByType(userId, 'purchase'),
+  ]);
 
   const actions = EARN_ACTIONS.map(a => ({
     ...a,
-    completed: (a.key === 'signup' && signupDone) || (a.key === 'purchase' && firstPurchaseDone),
+    completed: (a.key === 'signup' && signupTotal > 0) || (a.key === 'purchase' && purchaseTotal > 0),
   }));
 
   res.json({
@@ -57,10 +59,10 @@ router.get('/', (req, res) => {
   });
 });
 
-router.get('/history', (req, res) => {
+router.get('/history', async (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 50, 100);
   const offset = Number(req.query.offset) || 0;
-  const history = Points.history(req.user.id, limit, offset);
+  const history = await Points.history(req.user.id, limit, offset);
   res.json({ history });
 });
 

@@ -1,18 +1,22 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
-const fs = require('fs');
-const path = require('path');
 
 process.env.JWT_SECRET = 'e2e-test-secret';
 process.env.NODE_ENV = 'test';
 process.env.ADMIN_EMAIL = 'admin@thapill.com';
-
-const DB_PATH = path.join(__dirname, '..', 'db', 'thapill.db');
-if (fs.existsSync(DB_PATH)) fs.unlinkSync(DB_PATH);
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgres://thapill:thapill@localhost:5432/thapill_test';
 
 const app = require('../server');
+const db = require('../src/models/db');
 let server, port;
+
+async function resetDb() {
+  await db.query(`
+    DROP TABLE IF EXISTS chat_messages, points_ledger, referrals, order_items, shipments, orders,
+      cart_items, addresses, sessions, products, users CASCADE;
+  `);
+}
 
 function req(method, urlPath, body, cookie) {
   return new Promise((resolve, reject) => {
@@ -57,17 +61,20 @@ function mergeCookies(existing, newCookies) {
   return Object.values(map).join('; ');
 }
 
-before(() => new Promise(resolve => {
-  server = http.createServer(app);
-  server.listen(0, () => { port = server.address().port; resolve(); });
-}));
+before(async () => {
+  await resetDb();
+  await app.bootstrap();
+  return new Promise(resolve => {
+    server = http.createServer(app);
+    server.listen(0, () => { port = server.address().port; resolve(); });
+  });
+});
 
-after(() => new Promise(resolve => {
-  server.close(resolve);
-  try { fs.unlinkSync(DB_PATH); } catch {}
-  try { fs.unlinkSync(DB_PATH + '-shm'); } catch {}
-  try { fs.unlinkSync(DB_PATH + '-wal'); } catch {}
-}));
+after(async () => {
+  await new Promise(r => server.close(r));
+  await resetDb();
+  await db.pool.end();
+});
 
 // ═══════════════════════════════════════════════════════════════
 // FULL E2E JOURNEY

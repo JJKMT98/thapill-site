@@ -4,14 +4,11 @@ const http = require('http');
 
 process.env.JWT_SECRET = 'test-secret';
 process.env.NODE_ENV = 'test';
-
-const fs = require('fs');
-const DB_PATH = require('path').join(__dirname, '..', 'db', 'thapill.db');
-if (fs.existsSync(DB_PATH)) fs.unlinkSync(DB_PATH);
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgres://thapill:thapill@localhost:5432/thapill_test';
 
 const app = require('../server');
-let server;
-let port;
+const db = require('../src/models/db');
+let server, port;
 
 function req(method, path, body, cookie) {
   return new Promise((resolve, reject) => {
@@ -37,15 +34,27 @@ function extractCookie(setCookie) {
   return setCookie.map(c => c.split(';')[0]).join('; ');
 }
 
-before(() => new Promise(resolve => {
-  server = http.createServer(app);
-  server.listen(0, () => { port = server.address().port; resolve(); });
-}));
+async function resetDb() {
+  await db.query(`
+    DROP TABLE IF EXISTS chat_messages, points_ledger, referrals, order_items, shipments, orders,
+      cart_items, addresses, sessions, products, users CASCADE;
+  `);
+}
 
-after(() => new Promise(resolve => {
-  server.close(resolve);
-  if (fs.existsSync(DB_PATH)) fs.unlinkSync(DB_PATH);
-}));
+before(async () => {
+  await resetDb();
+  await app.bootstrap();
+  return new Promise(resolve => {
+    server = http.createServer(app);
+    server.listen(0, () => { port = server.address().port; resolve(); });
+  });
+});
+
+after(async () => {
+  await new Promise(r => server.close(r));
+  await resetDb();
+  await db.pool.end();
+});
 
 describe('Auth', () => {
   let cookie;

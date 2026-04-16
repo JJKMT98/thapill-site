@@ -1,13 +1,13 @@
 const { verifyJWT, COOKIE_NAME } = require('../utils/tokens');
 const User = require('../models/user');
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const token = req.cookies[COOKIE_NAME];
   if (!token) return res.status(401).json({ error: 'Authentication required' });
 
   try {
     const payload = verifyJWT(token);
-    const user = User.findById(payload.id);
+    const user = await User.findById(payload.id);
     if (!user) return res.status(401).json({ error: 'User not found' });
     req.user = user;
     next();
@@ -16,13 +16,13 @@ function requireAuth(req, res, next) {
   }
 }
 
-function optionalAuth(req, _res, next) {
+async function optionalAuth(req, _res, next) {
   const token = req.cookies[COOKIE_NAME];
   if (!token) return next();
 
   try {
     const payload = verifyJWT(token);
-    req.user = User.findById(payload.id) || null;
+    req.user = (await User.findById(payload.id)) || null;
   } catch {
     req.user = null;
   }

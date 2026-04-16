@@ -1,0 +1,8 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/healthz", "destination": "/api" },
+    { "source": "/order/success/:orderNumber", "destination": "/order-success" },
+    { "source": "/tracking/:orderNumber", "destination": "/tracking" }
+  ]
+}

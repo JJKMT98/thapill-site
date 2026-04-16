@@ -1,4 +1,4 @@
-// thaPill live chat widget — include on any page with <script src="/js/chat.js"></script>
+// thaPill live chat widget — REST polling (works on serverless)
 (function () {
   const STYLE = document.createElement('style');
   STYLE.textContent = `
@@ -78,23 +78,28 @@
   const sendBtn = document.getElementById('chatSend');
   const typingEl = document.getElementById('chatTyping');
   let isOpen = false;
-  let socket = null;
+  let lastMsgId = 0;
+  let pollInterval = null;
 
   function toggle() {
     isOpen = !isOpen;
     chatWindow.classList.toggle('open', isOpen);
     closeBtn.classList.toggle('rotated', isOpen);
     if (isOpen) {
-      connectSocket();
+      loadHistory();
+      startPolling();
       input.focus();
-      scrollBottom();
+    } else {
+      stopPolling();
     }
   }
 
   trigger.addEventListener('click', toggle);
   closeBtn.addEventListener('click', toggle);
 
-  function addMessage(sender, text) {
+  function addMessage(sender, text, id) {
+    if (id && id <= lastMsgId) return;
+    if (id) lastMsgId = Math.max(lastMsgId, id);
     const div = document.createElement('div');
     div.className = 'chat-msg ' + sender;
     div.textContent = text;
@@ -102,22 +107,52 @@
     scrollBottom();
   }
 
-  function scrollBottom() {
-    setTimeout(() => { messages.scrollTop = messages.scrollHeight; }, 50);
+  function scrollBottom() { setTimeout(() => { messages.scrollTop = messages.scrollHeight; }, 50); }
+
+  async function loadHistory() {
+    try {
+      const res = await fetch('/api/chat/history');
+      const data = await res.json();
+      for (const m of data.messages) addMessage(m.sender, m.message, m.id);
+    } catch {}
   }
 
-  function sendMessage() {
+  async function poll() {
+    try {
+      const res = await fetch('/api/chat/history?since=' + lastMsgId);
+      const data = await res.json();
+      for (const m of data.messages) addMessage(m.sender, m.message, m.id);
+    } catch {}
+  }
+
+  function startPolling() { if (!pollInterval) pollInterval = setInterval(poll, 3000); }
+  function stopPolling()  { if (pollInterval)  { clearInterval(pollInterval); pollInterval = null; } }
+
+  async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
     input.value = '';
 
-    if (socket && socket.connected) {
-      socket.emit('chat:message', { message: text });
-    } else {
-      addMessage('user', text);
+    addMessage('user', text);
+    typingEl.classList.add('visible');
+    scrollBottom();
+
+    try {
+      const res = await fetch('/api/chat/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
       setTimeout(() => {
-        addMessage('bot', 'Connection lost — please refresh the page.');
-      }, 500);
+        typingEl.classList.remove('visible');
+        for (const m of data.messages) {
+          if (m.sender !== 'user') addMessage(m.sender, m.message, m.id);
+        }
+      }, 600);
+    } catch {
+      typingEl.classList.remove('visible');
+      addMessage('bot', 'Connection error — please try again.');
     }
   }
 
@@ -125,26 +160,4 @@
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
-
-  function connectSocket() {
-    if (socket) return;
-
-    const script = document.createElement('script');
-    script.src = '/socket.io/socket.io.js';
-    script.onload = () => {
-      socket = io();
-      const roomId = document.cookie.match(/thapill_session=([^;]+)/)?.[1] || 'anon-' + Math.random().toString(36).slice(2);
-      socket.emit('chat:join', { roomId });
-
-      socket.on('chat:message', (data) => {
-        addMessage(data.sender, data.message);
-      });
-
-      socket.on('chat:typing', (data) => {
-        typingEl.classList.toggle('visible', data.typing);
-        scrollBottom();
-      });
-    };
-    document.head.appendChild(script);
-  }
 })();

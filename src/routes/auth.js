@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
-    const existing = User.findByEmail(email.toLowerCase().trim());
+    const existing = await User.findByEmail(email.toLowerCase().trim());
     if (existing) {
       return res.status(409).json({ error: 'An account with this email already exists' });
     }
@@ -34,18 +34,18 @@ router.post('/register', async (req, res) => {
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     let uid = generateUID();
-    while (User.findByUid(uid)) uid = generateUID();
+    while (await User.findByUid(uid)) uid = generateUID();
 
     let refCode = generateReferralCode(first_name);
-    while (User.findByReferral(refCode)) refCode = generateUID();
+    while (await User.findByReferral(refCode)) refCode = generateUID();
 
     let referred_by = null;
     if (referral_code) {
-      const referrer = User.findByReferral(referral_code.toUpperCase().trim());
+      const referrer = await User.findByReferral(referral_code.toUpperCase().trim());
       if (referrer) referred_by = referrer.id;
     }
 
-    const user = User.create({
+    const user = await User.create({
       uid,
       email: email.toLowerCase().trim(),
       password_hash,
@@ -56,7 +56,7 @@ router.post('/register', async (req, res) => {
       referred_by,
     });
 
-    Points.add({
+    await Points.add({
       user_id: user.id,
       amount: 100,
       type: 'signup',
@@ -65,7 +65,7 @@ router.post('/register', async (req, res) => {
     });
 
     if (referred_by) {
-      Referral.create({
+      await Referral.create({
         referrer_id: referred_by,
         referred_id: user.id,
         referral_code: referral_code.toUpperCase().trim(),
@@ -79,7 +79,8 @@ router.post('/register', async (req, res) => {
     const jwt = signJWT(user);
     setAuthCookie(res, jwt);
 
-    const { password_hash: _, ...safe } = User.findById(user.id);
+    const fresh = await User.findById(user.id);
+    const { password_hash: _, ...safe } = fresh;
     res.status(201).json({ user: safe });
   } catch (err) {
     console.error('[auth] register error:', err);
@@ -94,7 +95,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = User.findByEmail(email.toLowerCase().trim());
+    const user = await User.findByEmail(email.toLowerCase().trim());
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
 
     const match = await bcrypt.compare(password, user.password_hash);
@@ -121,23 +122,23 @@ router.get('/me', requireAuth, (req, res) => {
   res.json({ user: safe });
 });
 
-router.get('/verify/:token', (req, res) => {
+router.get('/verify/:token', async (req, res) => {
   const entry = verifyTokens.get(req.params.token);
   if (!entry || Date.now() > entry.expires) {
     return res.status(400).json({ error: 'Invalid or expired verification link' });
   }
 
-  User.verifyEmail(entry.userId);
+  await User.verifyEmail(entry.userId);
   verifyTokens.delete(req.params.token);
 
   res.redirect('/login?verified=1');
 });
 
-router.post('/forgot', (req, res) => {
+router.post('/forgot', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
-  const user = User.findByEmail(email.toLowerCase().trim());
+  const user = await User.findByEmail(email.toLowerCase().trim());
   if (!user) return res.json({ ok: true });
 
   const token = generateToken();
@@ -160,7 +161,7 @@ router.post('/reset/:token', async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    User.updatePassword(entry.userId, hash);
+    await User.updatePassword(entry.userId, hash);
     resetTokens.delete(req.params.token);
 
     res.json({ ok: true });

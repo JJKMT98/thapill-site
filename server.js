@@ -8,8 +8,7 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 
-require('./src/models/db');
-require('./db/seed');
+const db = require('./src/models/db');
 
 const authRoutes = require('./src/routes/auth');
 const dashboardRoutes = require('./src/routes/dashboard');
@@ -19,7 +18,6 @@ const rewardsRoutes = require('./src/routes/rewards');
 const referralRoutes = require('./src/routes/referrals');
 const trackingRoutes = require('./src/routes/tracking');
 const chatRoutes = require('./src/routes/chat');
-const { initSocket } = require('./src/services/socket');
 const adminRoutes = require('./src/routes/admin');
 
 const app = express();
@@ -30,8 +28,6 @@ app.set('trust proxy', 1);
 
 app.use(
   helmet({
-    // The landing page relies on Google Fonts, inline styles on a few elements,
-    // and a data: URI SVG noise texture. Relax CSP accordingly.
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
@@ -51,7 +47,7 @@ app.use(compression());
 app.use(cors({ origin: true, credentials: true }));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many attempts, try again later' } });
-const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, message: { error: 'Rate limit exceeded' } });
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 200, message: { error: 'Rate limit exceeded' } });
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.JWT_SECRET || 'dev-cookie-secret'));
@@ -63,8 +59,13 @@ app.use(
   })
 );
 
-app.get('/healthz', (_req, res) => {
-  res.json({ ok: true, service: 'thapill', time: new Date().toISOString() });
+app.get('/healthz', async (_req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ ok: true, service: 'thapill', time: new Date().toISOString() });
+  } catch (e) {
+    res.status(503).json({ ok: false, error: e.message });
+  }
 });
 
 app.use('/api/auth', authLimiter, authRoutes);
@@ -75,24 +76,16 @@ app.use('/api/checkout', checkoutRoutes);
 app.use('/api/rewards', rewardsRoutes);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/tracking', trackingRoutes);
-
-app.get('/tracking', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'tracking.html'));
-});
-app.get('/tracking/:orderNumber', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'tracking.html'));
-});
-
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin', adminRoutes);
 
-app.get('/order/success/:orderNumber', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'order-success.html'));
-});
+app.get('/tracking', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'tracking.html')));
+app.get('/tracking/:orderNumber', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'tracking.html')));
+app.get('/order/success/:orderNumber', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'order-success.html')));
 
-app.get('/api/products', (_req, res) => {
+app.get('/api/products', async (_req, res) => {
   const Product = require('./src/models/product');
-  res.json(Product.listActive());
+  res.json(await Product.listActive());
 });
 
 app.use((_req, res) => {
@@ -104,15 +97,19 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+async function bootstrap() {
+  await db.init();
+  const { seed } = require('./db/seed');
+  await seed();
+}
+
 if (require.main === module) {
-  const http = require('http');
-  const { Server } = require('socket.io');
-  const server = http.createServer(app);
-  const io = new Server(server);
-  initSocket(io);
-  server.listen(PORT, () => {
-    console.log(`thaPill server listening on http://localhost:${PORT}`);
-  });
+  bootstrap().then(() => {
+    app.listen(PORT, () => {
+      console.log(`thaPill server listening on http://localhost:${PORT}`);
+    });
+  }).catch((e) => { console.error('Bootstrap failed:', e); process.exit(1); });
 }
 
 module.exports = app;
+module.exports.bootstrap = bootstrap;

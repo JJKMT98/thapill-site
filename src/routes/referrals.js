@@ -7,9 +7,11 @@ const User = require('../models/user');
 
 router.use(requireAuth);
 
-router.get('/', (req, res) => {
-  const referrals = Referral.listByReferrer(req.user.id);
-  const count = Referral.countByReferrer(req.user.id);
+router.get('/', async (req, res) => {
+  const [referrals, count] = await Promise.all([
+    Referral.listByReferrer(req.user.id),
+    Referral.countByReferrer(req.user.id),
+  ]);
 
   const signedUp = referrals.filter(r => r.status === 'signed-up').length;
   const purchased = referrals.filter(r => ['first-purchase', 'rewarded'].includes(r.status)).length;
@@ -28,8 +30,8 @@ router.get('/', (req, res) => {
   });
 });
 
-router.get('/leaderboard', (_req, res) => {
-  const board = Referral.leaderboard(10);
+router.get('/leaderboard', async (_req, res) => {
+  const board = await Referral.leaderboard(10);
   res.json({
     leaderboard: board.map((r, i) => ({
       rank: i + 1,
@@ -40,10 +42,10 @@ router.get('/leaderboard', (_req, res) => {
   });
 });
 
-router.post('/validate', (req, res) => {
+router.post('/validate', async (req, res) => {
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: 'Code is required' });
-  const user = User.findByReferral(code.toUpperCase().trim());
+  const user = await User.findByReferral(code.toUpperCase().trim());
   res.json({ valid: !!user });
 });
 

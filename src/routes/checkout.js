@@ -5,10 +5,9 @@ const { optionalAuth } = require('../middleware/auth');
 const { ensureSession } = require('../middleware/session');
 const Cart = require('../models/cart');
 const Order = require('../models/order');
-const Product = require('../models/product');
 const Address = require('../models/address');
 const Points = require('../models/points');
-const User = require('../models/user');
+const db = require('../models/db');
 const { generateOrderNumber } = require('../utils/order-number');
 
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -22,17 +21,17 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
     const { address } = req.body;
 
     const items = req.user
-      ? Cart.findByUser(req.user.id)
-      : Cart.findBySession(req.sessionId);
+      ? await Cart.findByUser(req.user.id)
+      : await Cart.findBySession(req.sessionId);
 
     if (!items.length) return res.status(400).json({ error: 'Cart is empty' });
 
     const subtotal = items.reduce((s, i) => s + i.price_pence * i.quantity, 0);
-    const orderNumber = generateOrderNumber();
+    const orderNumber = await generateOrderNumber();
 
     let addressId = null;
     if (req.user && address) {
-      const saved = Address.create({
+      const saved = await Address.create({
         user_id: req.user.id,
         label: 'shipping',
         line1: address.line1,
@@ -48,7 +47,7 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
 
     const pointsEarned = Math.floor(subtotal / 100) * 10;
 
-    const order = Order.create({
+    const order = await Order.create({
       order_number: orderNumber,
       user_id: req.user ? req.user.id : null,
       address_id: addressId,
@@ -63,7 +62,7 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
     });
 
     for (const item of items) {
-      Order.addItem({
+      await Order.addItem({
         order_id: order.id,
         product_id: item.product_id,
         quantity: item.quantity,
@@ -96,31 +95,25 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
         shipping_address_collection: { allowed_countries: ['GB'] },
       });
 
-      Order.updateStatus(order.id, 'pending');
-      const db = require('../models/db');
-      db.prepare('UPDATE orders SET stripe_session_id = ? WHERE id = ?').run(session.id, order.id);
+      await db.run('UPDATE orders SET stripe_session_id = $1 WHERE id = $2', [session.id, order.id]);
 
-      if (req.user) Cart.clearUser(req.user.id);
-      else {
-        const cartDb = require('../models/db');
-        cartDb.prepare('DELETE FROM cart_items WHERE session_id = ?').run(req.sessionId);
-      }
+      if (req.user) await Cart.clearUser(req.user.id);
+      else await Cart.clearSession(req.sessionId);
 
       return res.json({ url: session.url, order_number: orderNumber });
     }
 
     // No Stripe configured — mark as paid for dev/testing
-    Order.updateStatus(order.id, 'paid');
+    await Order.updateStatus(order.id, 'paid');
     if (req.user) {
-      Points.add({ user_id: req.user.id, amount: pointsEarned, type: 'purchase', description: `Order ${orderNumber}`, reference_id: order.id });
-      const orderCount = Order.countByUser(req.user.id);
+      await Points.add({ user_id: req.user.id, amount: pointsEarned, type: 'purchase', description: `Order ${orderNumber}`, reference_id: order.id });
+      const orderCount = await Order.countByUser(req.user.id);
       if (orderCount === 1) {
-        Points.add({ user_id: req.user.id, amount: 200, type: 'purchase', description: 'First order bonus', reference_id: order.id });
+        await Points.add({ user_id: req.user.id, amount: 200, type: 'purchase', description: 'First order bonus', reference_id: order.id });
       }
-      Cart.clearUser(req.user.id);
+      await Cart.clearUser(req.user.id);
     } else {
-      const cartDb = require('../models/db');
-      cartDb.prepare('DELETE FROM cart_items WHERE session_id = ?').run(req.sessionId);
+      await Cart.clearSession(req.sessionId);
     }
 
     res.json({ url: `/order/success/${orderNumber}`, order_number: orderNumber });
@@ -130,11 +123,11 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
   }
 });
 
-router.get('/success/:orderNumber', (req, res) => {
-  const order = Order.findByNumber(req.params.orderNumber);
+router.get('/success/:orderNumber', async (req, res) => {
+  const order = await Order.findByNumber(req.params.orderNumber);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
-  const items = Order.getItems(order.id);
+  const items = await Order.getItems(order.id);
   res.json({
     order_number: order.order_number,
     status: order.status,

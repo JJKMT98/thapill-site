@@ -1,65 +1,67 @@
-const db = require('./db');
+const { one, many, run, transaction } = require('./db');
 
-const stmts = {
-  findByUser: db.prepare(`
-    SELECT ci.*, p.name, p.slug, p.price_pence, p.image_url, p.type
-    FROM cart_items ci JOIN products p ON ci.product_id = p.id
-    WHERE ci.user_id = ? ORDER BY ci.created_at
-  `),
-
-  findBySession: db.prepare(`
-    SELECT ci.*, p.name, p.slug, p.price_pence, p.image_url, p.type
-    FROM cart_items ci JOIN products p ON ci.product_id = p.id
-    WHERE ci.session_id = ? ORDER BY ci.created_at
-  `),
-
-  findItem: db.prepare('SELECT * FROM cart_items WHERE id = ?'),
-
-  countByUser:    db.prepare('SELECT COALESCE(SUM(quantity), 0) as total FROM cart_items WHERE user_id = ?'),
-  countBySession: db.prepare('SELECT COALESCE(SUM(quantity), 0) as total FROM cart_items WHERE session_id = ?'),
-
-  upsertUser: db.prepare(`
-    INSERT INTO cart_items (user_id, product_id, quantity)
-    VALUES (?, ?, ?)
-    ON CONFLICT(user_id, product_id) DO UPDATE SET quantity = quantity + excluded.quantity
-  `),
-
-  upsertSession: db.prepare(`
-    INSERT INTO cart_items (session_id, product_id, quantity)
-    VALUES (?, ?, ?)
-    ON CONFLICT(session_id, product_id) DO UPDATE SET quantity = quantity + excluded.quantity
-  `),
-
-  updateQty: db.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?'),
-  remove:    db.prepare('DELETE FROM cart_items WHERE id = ?'),
-  clearUser: db.prepare('DELETE FROM cart_items WHERE user_id = ?'),
-  clearSession: db.prepare('DELETE FROM cart_items WHERE session_id = ?'),
-
-  sessionItems: db.prepare('SELECT * FROM cart_items WHERE session_id = ?'),
-  transferToUser: db.prepare('UPDATE cart_items SET user_id = ?, session_id = NULL WHERE session_id = ?'),
-};
-
-const mergeGuestCart = db.transaction((userId, sessionId) => {
-  const guestItems = stmts.sessionItems.all(sessionId);
-  for (const item of guestItems) {
-    stmts.upsertUser.run(userId, item.product_id, item.quantity);
-  }
-  stmts.clearSession.run(sessionId);
-});
+const JOIN = `ci.id, ci.user_id, ci.session_id, ci.product_id, ci.quantity, ci.created_at,
+              p.name, p.slug, p.price_pence, p.image_url, p.type`;
 
 module.exports = {
-  findByUser:    (userId) => stmts.findByUser.all(userId),
-  findBySession: (sid) => stmts.findBySession.all(sid),
-  findItem:      (id) => stmts.findItem.get(id),
-  countByUser:   (userId) => stmts.countByUser.get(userId).total,
-  countBySession:(sid) => stmts.countBySession.get(sid).total,
+  findByUser: (userId) =>
+    many(
+      `SELECT ${JOIN} FROM cart_items ci JOIN products p ON ci.product_id = p.id
+       WHERE ci.user_id = $1 ORDER BY ci.created_at`,
+      [userId]
+    ),
 
-  addForUser:    (userId, productId, qty = 1) => stmts.upsertUser.run(userId, productId, qty),
-  addForSession: (sid, productId, qty = 1) => stmts.upsertSession.run(sid, productId, qty),
+  findBySession: (sessionId) =>
+    many(
+      `SELECT ${JOIN} FROM cart_items ci JOIN products p ON ci.product_id = p.id
+       WHERE ci.session_id = $1 ORDER BY ci.created_at`,
+      [sessionId]
+    ),
 
-  updateQty: (id, qty) => stmts.updateQty.run(qty, id),
-  remove:    (id) => stmts.remove.run(id),
-  clearUser: (userId) => stmts.clearUser.run(userId),
+  findItem: (id) => one('SELECT * FROM cart_items WHERE id = $1', [id]),
 
-  mergeGuestCart,
+  countByUser: async (userId) => {
+    const row = await one('SELECT COALESCE(SUM(quantity), 0)::int as total FROM cart_items WHERE user_id = $1', [userId]);
+    return row.total;
+  },
+
+  countBySession: async (sid) => {
+    const row = await one('SELECT COALESCE(SUM(quantity), 0)::int as total FROM cart_items WHERE session_id = $1', [sid]);
+    return row.total;
+  },
+
+  addForUser: (userId, productId, qty = 1) =>
+    run(
+      `INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, product_id) WHERE user_id IS NOT NULL
+       DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity`,
+      [userId, productId, qty]
+    ),
+
+  addForSession: (sessionId, productId, qty = 1) =>
+    run(
+      `INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)
+       ON CONFLICT (session_id, product_id) WHERE session_id IS NOT NULL
+       DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity`,
+      [sessionId, productId, qty]
+    ),
+
+  updateQty: (id, qty) => run('UPDATE cart_items SET quantity = $1 WHERE id = $2', [qty, id]),
+  remove:    (id) => run('DELETE FROM cart_items WHERE id = $1', [id]),
+  clearUser: (userId) => run('DELETE FROM cart_items WHERE user_id = $1', [userId]),
+  clearSession: (sid) => run('DELETE FROM cart_items WHERE session_id = $1', [sid]),
+
+  mergeGuestCart: (userId, sessionId) =>
+    transaction(async (client) => {
+      const guestItems = (await client.query('SELECT * FROM cart_items WHERE session_id = $1', [sessionId])).rows;
+      for (const item of guestItems) {
+        await client.query(
+          `INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, product_id) WHERE user_id IS NOT NULL
+           DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity`,
+          [userId, item.product_id, item.quantity]
+        );
+      }
+      await client.query('DELETE FROM cart_items WHERE session_id = $1', [sessionId]);
+    }),
 };
