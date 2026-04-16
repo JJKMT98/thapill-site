@@ -110,7 +110,7 @@
   .hero-content { position: relative; z-index: 2; flex: 1; max-width: 620px; }
   .hero-product { position: relative; z-index: 2; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; perspective: 800px; }
   .hero-product-img { width: 420px; height: auto; filter: drop-shadow(0 0 60px rgba(0,255,136,0.3)) drop-shadow(0 0 120px rgba(0,255,136,0.12)); animation: heroFloat 6s ease-in-out infinite; transition: transform 0.3s ease, filter 0.3s; will-change: transform; mask-image: radial-gradient(ellipse 80% 85% at center, black 45%, transparent 82%); -webkit-mask-image: radial-gradient(ellipse 80% 85% at center, black 45%, transparent 82%); }
-  @keyframes heroFloat { 0%, 100% { transform: translateY(0px) rotateY(0deg); } 25% { transform: translateY(-15px) rotateY(3deg); } 50% { transform: translateY(-25px) rotateY(0deg); } 75% { transform: translateY(-10px) rotateY(-3deg); } }
+  @keyframes heroFloat { 0%, 100% { transform: translateY(0px) rotateY(0deg); } 25% { transform: translateY(-5px) rotateY(1deg); } 50% { transform: translateY(-8px) rotateY(0deg); } 75% { transform: translateY(-3px) rotateY(-1deg); } }
   .hero-product-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 550px; height: 550px; border-radius: 50%; background: radial-gradient(circle, rgba(0,255,136,0.1) 0%, transparent 70%); animation: glowPulse 4s ease-in-out infinite; pointer-events: none; }
   @keyframes glowPulse { 0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 0.5; } 50% { transform: translate(-50%,-50%) scale(1.3); opacity: 1; } }
   /* Energy rings around hero product */
@@ -168,7 +168,7 @@
   .pill-hero-img-wrap { position: relative; z-index: 2; margin-bottom: 60px; width: 360px; height: 360px; display: flex; align-items: center; justify-content: center; }
   .pill-hero-img { width: 300px; height: auto; filter: drop-shadow(0 0 50px rgba(0,255,136,0.35)) drop-shadow(0 0 100px rgba(0,255,136,0.15)); animation: pillMacroFloat 5s ease-in-out infinite; transition: transform 0.5s cubic-bezier(0.16,1,0.3,1), filter 0.5s; mix-blend-mode: lighten; mask-image: radial-gradient(ellipse 70% 70% at center, black 30%, transparent 70%); -webkit-mask-image: radial-gradient(ellipse 70% 70% at center, black 30%, transparent 70%); }
   .pill-hero-img:hover { transform: scale(1.2) rotate(8deg); filter: drop-shadow(0 0 80px rgba(0,255,136,0.6)) drop-shadow(0 0 150px rgba(0,255,136,0.25)); }
-  @keyframes pillMacroFloat { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-25px) rotate(3deg); } }
+  @keyframes pillMacroFloat { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(1.5deg); } }
   .pill-orbit-ring { position: absolute; border-radius: 50%; border: 1px solid; top: 50%; left: 50%; transform: translate(-50%,-50%); }
   .pill-orbit-1 { width: 380px; height: 380px; border-color: rgba(0,255,136,0.08); animation: ringRotate 18s linear infinite; }
   .pill-orbit-2 { width: 470px; height: 470px; border-color: rgba(68,136,255,0.05); animation: ringRotate 28s linear infinite reverse; }
@@ -218,10 +218,10 @@
   .showcase-visual { position: relative; display: flex; align-items: center; justify-content: center; min-height: 500px; perspective: 600px; }
   .showcase-bottle-img { width: 340px; height: auto; filter: drop-shadow(0 20px 60px rgba(0,0,0,0.6)) drop-shadow(0 0 40px rgba(0,255,136,0.15)); animation: showcaseFloat 7s ease-in-out infinite; position: relative; z-index: 2; transition: transform 0.4s cubic-bezier(0.16,1,0.3,1); mask-image: radial-gradient(ellipse 85% 90% at center, black 55%, transparent 90%); -webkit-mask-image: radial-gradient(ellipse 85% 90% at center, black 55%, transparent 90%); }
   .showcase-bottle-img:hover { transform: scale(1.1) translateY(-15px) rotateY(8deg); }
-  @keyframes showcaseFloat { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-20px) rotate(1deg); } }
+  @keyframes showcaseFloat { 0%, 100% { transform: translateY(0) rotate(-0.5deg); } 50% { transform: translateY(-6px) rotate(0.5deg); } }
   .showcase-box-img { position: absolute; right: -30px; bottom: 20px; width: 230px; height: auto; z-index: 1; filter: drop-shadow(0 15px 40px rgba(0,0,0,0.5)); opacity: 0.9; animation: boxDrift 8s ease-in-out infinite; transition: transform 0.5s, opacity 0.3s; mask-image: radial-gradient(ellipse 90% 90% at center, black 50%, transparent 88%); -webkit-mask-image: radial-gradient(ellipse 90% 90% at center, black 50%, transparent 88%); }
   .showcase-box-img:hover { transform: scale(1.12) rotate(5deg); opacity: 1; }
-  @keyframes boxDrift { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-14px) rotate(2deg); } }
+  @keyframes boxDrift { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-5px) rotate(1deg); } }
   .showcase-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 450px; height: 450px; border-radius: 50%; background: radial-gradient(circle, rgba(0,255,136,0.07) 0%, transparent 70%); pointer-events: none; animation: glowPulse 5s ease-in-out infinite; }
   .showcase-text { position: relative; z-index: 1; }
   .showcase-text h2 { font-size: clamp(28px, 3.5vw, 40px); font-weight: 700; line-height: 1.2; margin-bottom: 20px; }
@@ -523,9 +523,9 @@ allReveals.forEach(el=>rObs.observe(el));
 const heroBg=document.getElementById('heroBg'),pillBg=document.getElementById('pillBg'),socialBg=document.getElementById('socialBg');
 function parallaxScroll(){
   const s=window.scrollY;
-  if(heroBg)heroBg.style.transform=`translateY(${s*0.15}px)`;
-  if(pillBg)pillBg.style.transform=`translateY(${(s-pillBg.parentElement.offsetTop)*0.1}px)`;
-  if(socialBg)socialBg.style.transform=`translateY(${(s-socialBg.parentElement.offsetTop)*0.08}px)`;
+  if(heroBg)heroBg.style.transform=`translateY(${s*0.06}px)`;
+  if(pillBg)pillBg.style.transform=`translateY(${(s-pillBg.parentElement.offsetTop)*0.04}px)`;
+  if(socialBg)socialBg.style.transform=`translateY(${(s-socialBg.parentElement.offsetTop)*0.03}px)`;
 }
 window.addEventListener('scroll',parallaxScroll,{passive:true});
 
