@@ -15,6 +15,7 @@ const cartRoutes = require('./src/routes/cart');
 const checkoutRoutes = require('./src/routes/checkout');
 const rewardsRoutes = require('./src/routes/rewards');
 const referralRoutes = require('./src/routes/referrals');
+const trackingRoutes = require('./src/routes/tracking');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -62,6 +63,14 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/rewards', rewardsRoutes);
 app.use('/api/referrals', referralRoutes);
+app.use('/api/tracking', trackingRoutes);
+
+app.get('/tracking', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'tracking.html'));
+});
+app.get('/tracking/:orderNumber', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'tracking.html'));
+});
 
 app.get('/order/success/:orderNumber', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'order-success.html'));

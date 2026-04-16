@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THAPILL — Track Order</title>
+<link rel="icon" type="image/png" sizes="32x32" href="thapill-assets/favicon-32.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .track-page { min-height: 100vh; padding: 100px 48px 60px; max-width: 800px; margin: 0 auto; position: relative; z-index: 1; }
+  .track-nav { position: fixed; top: 0; width: 100%; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 16px 48px; background: rgba(3,3,6,0.92); border-bottom: 1px solid var(--border); backdrop-filter: blur(30px); }
+  .track-nav a { color: var(--text-dim); text-decoration: none; font-size: 13px; }
+  .track-nav a:hover { color: var(--electric); }
+  .track-nav-logo { height: 22px; opacity: 0.9; }
+
+  .track-header { margin-bottom: 40px; }
+  .track-header h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; }
+  .track-order-num { font-family: 'JetBrains Mono', monospace; font-size: 20px; color: var(--electric); position: relative; display: inline-block; }
+  .track-order-num::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent); animation: shimmer 3s ease-in-out infinite; }
+  @keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }
+  .track-meta { margin-top: 8px; font-size: 13px; color: var(--text-dim); display: flex; gap: 24px; flex-wrap: wrap; }
+  .track-meta span { color: var(--text); }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 40px; margin-bottom: 40px; }
+  .timeline::before { content: ''; position: absolute; left: 15px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .timeline-line { position: absolute; left: 15px; top: 0; width: 2px; background: var(--electric); height: 0; transition: height 1.5s cubic-bezier(0.16,1,0.3,1); z-index: 1; }
+  .timeline-step { position: relative; padding: 16px 0; opacity: 0; transform: translateX(-10px); transition: opacity 0.5s, transform 0.5s; }
+  .timeline-step.visible { opacity: 1; transform: translateX(0); }
+  .timeline-dot { position: absolute; left: -33px; top: 20px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); background: var(--bg); z-index: 2; transition: all 0.3s; }
+  .timeline-step.completed .timeline-dot { background: var(--electric); border-color: var(--electric); box-shadow: 0 0 8px rgba(0,255,136,0.4); }
+  .timeline-step.current .timeline-dot { background: var(--electric); border-color: var(--electric); box-shadow: 0 0 8px rgba(0,255,136,0.4); animation: breathDot 2s ease-in-out infinite; }
+  @keyframes breathDot { 0%,100% { box-shadow: 0 0 8px rgba(0,255,136,0.4); } 50% { box-shadow: 0 0 20px rgba(0,255,136,0.8); } }
+  .timeline-step.future .timeline-dot { background: var(--bg); border-color: var(--border); }
+  .timeline-step.future { opacity: 0.4; }
+  .timeline-step.future.visible { opacity: 0.4; }
+  .timeline-label { font-size: 15px; font-weight: 500; text-transform: capitalize; }
+  .timeline-time { font-size: 12px; color: var(--text-dim); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+  .timeline-detail { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+
+  /* Carrier button */
+  .carrier-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: 13px; transition: border-color 0.2s; margin-bottom: 32px; }
+  .carrier-btn:hover { border-color: var(--electric); }
+
+  /* Order items */
+  .track-items { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+  .track-items h3 { font-size: 14px; margin-bottom: 16px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; }
+  .track-item { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid rgba(21,21,37,0.5); }
+  .track-item:last-child { border-bottom: none; }
+  .track-item img { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: var(--surface); }
+  .track-item-name { font-size: 14px; flex: 1; }
+  .track-item-qty { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-dim); }
+
+  /* Search form for public tracking */
+  .track-search { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 32px; text-align: center; max-width: 500px; margin: 60px auto; }
+  .track-search h2 { font-size: 22px; margin-bottom: 16px; }
+  .track-search-row { display: flex; gap: 8px; }
+  .track-search input { flex: 1; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; font-family: 'JetBrains Mono', monospace; outline: none; }
+  .track-search input:focus { border-color: var(--electric); }
+  .track-search button { padding: 12px 24px; background: var(--electric); color: var(--bg); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Space Grotesk', sans-serif; }
+
+  .error-state { text-align: center; padding: 60px; color: var(--text-dim); }
+
+  @media (max-width: 768px) {
+    .track-page { padding: 90px 20px 40px; }
+    .track-nav { padding: 14px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<nav class="track-nav">
+  <a href="/"><img src="thapill-assets/logo.png" alt="THAPILL" class="track-nav-logo"></a>
+  <a href="/dashboard">&larr; Dashboard</a>
+</nav>
+
+<div class="track-page">
+  <!-- Search mode (no order number in URL) -->
+  <div id="searchMode" style="display:none;">
+    <div class="track-search">
+      <h2>Track Your Order</h2>
+      <p style="color:var(--text-dim);font-size:14px;margin-bottom:20px;">Enter your order number to see its status.</p>
+      <div class="track-search-row">
+        <input type="text" id="searchInput" placeholder="TP-20260416-001">
+        <button id="searchBtn">Track</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tracking display -->
+  <div id="trackDisplay" style="display:none;">
+    <div class="track-header">
+      <h1>Order Tracking</h1>
+      <div class="track-order-num" id="trackOrderNum"></div>
+      <div class="track-meta">
+        <div>Estimated delivery: <span id="trackEta">—</span></div>
+        <div>Carrier: <span id="trackCarrier">—</span></div>
+      </div>
+    </div>
+
+    <a class="carrier-btn" id="carrierLink" style="display:none;" target="_blank">Track on carrier site &rarr;</a>
+
+    <div class="timeline" id="timeline">
+      <div class="timeline-line" id="timelineLine"></div>
+    </div>
+
+    <div class="track-items" id="trackItems">
+      <h3>Items Ordered</h3>
+    </div>
+  </div>
+
+  <div id="errorState" class="error-state" style="display:none;">
+    <p>Order not found.</p>
+    <a href="/tracking" style="color:var(--electric);">Try another order number</a>
+  </div>
+</div>
+
+<script>
+(function() {
+  const pathParts = window.location.pathname.split('/');
+  const orderNumber = pathParts[2] || '';
+
+  if (!orderNumber) {
+    document.getElementById('searchMode').style.display = '';
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      const val = document.getElementById('searchInput').value.trim();
+      if (val) window.location.href = '/tracking/' + val;
+    });
+    document.getElementById('searchInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('searchBtn').click();
+    });
+    return;
+  }
+
+  async function load() {
+    const res = await fetch('/api/tracking/' + orderNumber);
+    if (!res.ok) { document.getElementById('errorState').style.display = ''; return; }
+    const data = await res.json();
+    document.getElementById('trackDisplay').style.display = '';
+    render(data);
+  }
+
+  function render(data) {
+    document.getElementById('trackOrderNum').textContent = data.order_number;
+    document.getElementById('trackEta').textContent = data.estimated_delivery || 'Pending';
+    document.getElementById('trackCarrier').textContent = data.carrier ? data.carrier.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Pending';
+
+    if (data.tracking_url) {
+      const link = document.getElementById('carrierLink');
+      link.href = data.tracking_url;
+      link.style.display = '';
+    }
+
+    const timeline = document.getElementById('timeline');
+    const currentIdx = data.steps.findIndex(s => s.current);
+
+    data.steps.forEach((step, i) => {
+      const el = document.createElement('div');
+      let cls = 'timeline-step';
+      if (step.completed && !step.current) cls += ' completed';
+      if (step.current) cls += ' current completed';
+      if (!step.completed) cls += ' future';
+      el.className = cls;
+      el.innerHTML = `
+        <div class="timeline-dot"></div>
+        <div class="timeline-label">${step.label}</div>
+        ${step.timestamp ? '<div class="timeline-time">' + new Date(step.timestamp).toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '</div>' : ''}
+        ${step.detail ? '<div class="timeline-detail">' + step.detail + '</div>' : ''}
+      `;
+      timeline.appendChild(el);
+      setTimeout(() => el.classList.add('visible'), 200 + i * 150);
+    });
+
+    // Animate the green line
+    const stepHeight = 68;
+    const lineTarget = currentIdx * stepHeight + 20;
+    setTimeout(() => {
+      document.getElementById('timelineLine').style.height = lineTarget + 'px';
+    }, 300);
+
+    // Items
+    const itemsEl = document.getElementById('trackItems');
+    for (const item of data.items) {
+      const div = document.createElement('div');
+      div.className = 'track-item';
+      div.innerHTML = '<img src="' + (item.image_url || '/thapill-assets/hero-bottle.png') + '" alt=""><div class="track-item-name">' + item.name + '</div><div class="track-item-qty">×' + item.quantity + '</div>';
+      itemsEl.appendChild(div);
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
