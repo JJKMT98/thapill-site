@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THAPILL — Lock In</title>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="32x32" href="thapill-assets/favicon-32.png">
+<link rel="icon" type="image/x-icon" href="thapill-assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="thapill-assets/apple-touch-icon.png">
+
+<!-- Open Graph / WhatsApp / Social -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.thapill.com/">
+<meta property="og:title" content="THAPILL — Your Edge. But Different.">
+<meta property="og:description" content="The daily nootropic for traders, coders, and creators who refuse to coast. 6 active ingredients. Full-dose. Zero proprietary blends.">
+<meta property="og:image" content="https://www.thapill.com/thapill-assets/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="THAPILL">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="THAPILL — Your Edge. But Different.">
+<meta name="twitter:description" content="The daily nootropic for traders, coders, and creators who refuse to coast.">
+<meta name="twitter:image" content="https://www.thapill.com/thapill-assets/og-image.jpg">
+
+<!-- General Meta -->
+<meta name="description" content="THAPILL — The daily nootropic for traders, coders, and creators. 6 active ingredients, fully dosed, zero proprietary blends, 100% transparent label.">
+<meta name="theme-color" content="#00ff88">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <img src="thapill-assets/icon.png" alt="THAPILL" class="loader-icon">
+  <div class="loader-text" id="loaderText">Initializing...</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-percent" id="loaderPercent">0%</div>
+</div>
+
+<div class="pill-cursor" id="pillCursor"><div class="pill-cursor-shape"></div></div>
+<div class="cursor-aura" id="cursorAura"></div>
+<div class="scroll-progress" id="scrollProgress"></div>
+<div class="noise"></div>
+<div class="scan-line"></div>
+<canvas id="particleCanvas"></canvas>
+
+<nav id="nav">
+  <a href="#"><img src="thapill-assets/logo.png" alt="THAPILL" class="nav-logo-img"></a>
+  <div class="nav-links">
+    <a href="#formula">Formula</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#pricing" class="mag-btn">Lock In</a>
+  </div>
+</nav>
+
+<section class="hero" id="heroSection">
+  <img src="thapill-assets/bg-hero.jpg" alt="" class="hero-bg-img" id="heroBg">
+  <div class="hero-bg-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-tag reveal">Built for Traders, Coders &amp; Creators</div>
+    <h1>
+      <span class="line reveal reveal-delay-1" data-split>Your edge.</span>
+      <span class="line reveal reveal-delay-2" data-split>But <span class="glow glitch" data-text="different." id="heroWord">different.</span></span>
+    </h1>
+    <p class="hero-sub reveal reveal-delay-3">One capsule. Six ingredients. Zero BS.<br>The daily nootropic for people who build things and refuse to coast.</p>
+    <div class="hero-ctas reveal reveal-delay-4">
+      <a href="#pricing" class="mag-btn">Lock In &mdash; &pound;25/mo</a>
+      <a href="#formula" class="mag-btn mag-btn-outline">See What's Inside</a>
+    </div>
+    <div class="float-badges reveal reveal-delay-5">
+      <div class="float-badge"><div class="badge-num" data-count="6">0</div><div class="badge-label">Active Ingredients</div></div>
+      <div class="float-badge"><div class="badge-num" data-count="0" data-suffix="">0</div><div class="badge-label">Proprietary Blends</div></div>
+      <div class="float-badge"><div class="badge-num" data-count="100" data-suffix="%">0</div><div class="badge-label">Transparent Label</div></div>
+    </div>
+  </div>
+  <div class="hero-product reveal reveal-delay-3">
+    <div class="hero-product-glow"></div>
+    <div class="hero-energy-ring"></div>
+    <div class="hero-energy-ring"></div>
+    <div class="hero-energy-ring"></div>
+    <img src="thapill-assets/hero-bottle-float.png" alt="THAPILL Bottle" class="hero-product-img" id="heroBottle">
+  </div>
+</section>
+
+<div class="marquee">
+  <div class="marquee-track">
+    <span class="marquee-item"><span class="em">LOCK IN</span><span class="dot"></span>FOCUS<span class="dot"></span>BUILD<span class="dot"></span>SHIP<span class="dot"></span>TRADE<span class="dot"></span>CODE<span class="dot"></span>CREATE<span class="dot"></span></span>
+    <span class="marquee-item"><span class="em">LOCK IN</span><span class="dot"></span>FOCUS<span class="dot"></span>BUILD<span class="dot"></span>SHIP<span class="dot"></span>TRADE<span class="dot"></span>CODE<span class="dot"></span>CREATE<span class="dot"></span></span>
+    <span class="marquee-item"><span class="em">LOCK IN</span><span class="dot"></span>FOCUS<span class="dot"></span>BUILD<span class="dot"></span>SHIP<span class="dot"></span>TRADE<span class="dot"></span>CODE<span class="dot"></span>CREATE<span class="dot"></span></span>
+    <span class="marquee-item"><span class="em">LOCK IN</span><span class="dot"></span>FOCUS<span class="dot"></span>BUILD<span class="dot"></span>SHIP<span class="dot"></span>TRADE<span class="dot"></span>CODE<span class="dot"></span>CREATE<span class="dot"></span></span>
+  </div>
+</div>
+
+<section class="pill-section">
+  <img src="thapill-assets/bg-pill-section.jpg" alt="" class="pill-section-bg" id="pillBg">
+  <div class="pill-section-overlay"></div>
+  <div class="pill-hero-img-wrap scale-reveal">
+    <div class="pill-orbit-ring pill-orbit-1"><div class="orbit-dot orbit-dot-green"></div></div>
+    <div class="pill-orbit-ring pill-orbit-2"><div class="orbit-dot orbit-dot-blue"></div></div>
+    <div class="pill-orbit-ring pill-orbit-3"><div class="orbit-dot orbit-dot-purple"></div></div>
+    <div class="pill-glow-ring"></div>
+    <img src="thapill-assets/capsule-macro.png" alt="THAPILL Capsule" class="pill-hero-img" id="capsuleImg">
+  </div>
+  <div class="section-tag reveal reveal-delay-1">One Pill. Every Morning.</div>
+  <h2 class="reveal reveal-delay-2">The <em>daily ritual</em><br>for people who build things.</h2>
+  <p class="pill-desc reveal reveal-delay-3">While everyone else is reaching for their third coffee, you've already moved on. Thapill is six ingredients, fully dosed, no filler &mdash; designed for people who take their routine as seriously as their work.</p>
+</section>
+
+<div class="electric-divider"></div>
+<div class="formula-bar reveal">
+  <p><span>100mg</span> Caffeine <span class="sep">/</span> <span>200mg</span> L-Theanine <span class="sep">/</span> <span>500mg</span> Lion's Mane <span class="sep">/</span> <span>300mg</span> Bacopa <span class="sep">/</span> <span>300mg</span> Alpha-GPC <span class="sep">/</span> <span>200mg</span> Rhodiola</p>
+</div>
+
+<section class="ingredients" id="formula">
+  <img src="thapill-assets/capsules-scattered.png" alt="" class="ingredients-bg-img">
+  <div class="section-header">
+    <span class="section-tag reveal">// What's Inside</span>
+    <h2 class="section-title reveal reveal-delay-1">Full transparency.<br>No hidden blends. Ever.</h2>
+  </div>
+  <div class="ingredient-grid">
+    <div class="ingredient-card reveal reveal-delay-1"><div class="ingredient-dose">100mg</div><div class="ingredient-name">Natural Caffeine</div><div class="ingredient-desc">The foundation. Caffeine contributes to increased alertness &mdash; paired with L-Theanine because that's how you build a proper stack.</div></div>
+    <div class="ingredient-card reveal reveal-delay-2"><div class="ingredient-dose">200mg</div><div class="ingredient-name">L-Theanine</div><div class="ingredient-desc">The classic pairing. An amino acid naturally found in green tea, used in nootropic formulas worldwide. This is the stack that started it all.</div></div>
+    <div class="ingredient-card reveal reveal-delay-3"><div class="ingredient-dose">500mg</div><div class="ingredient-name">Lion's Mane</div><div class="ingredient-desc">The long game. A functional mushroom used in traditional Eastern practices for centuries. Full 500mg dose &mdash; no extract shortcuts.</div></div>
+    <div class="ingredient-card reveal reveal-delay-1"><div class="ingredient-dose">300mg</div><div class="ingredient-name">Bacopa Monnieri</div><div class="ingredient-desc">The heritage ingredient. An adaptogenic herb used in Ayurvedic tradition for thousands of years. Full 300mg &mdash; not a label-dusting sprinkle.</div></div>
+    <div class="ingredient-card reveal reveal-delay-2"><div class="ingredient-dose">300mg</div><div class="ingredient-name">Alpha-GPC</div><div class="ingredient-desc">The premium choice. A choline compound naturally present in the body, widely featured in nootropic formulas for its bioavailability. 300mg of the real thing.</div></div>
+    <div class="ingredient-card reveal reveal-delay-3"><div class="ingredient-dose">200mg</div><div class="ingredient-name">Rhodiola Rosea</div><div class="ingredient-desc">The finisher. An adaptogenic root used in Scandinavian and Russian traditions for centuries. 200mg to round out a formula built for people who show up daily.</div></div>
+  </div>
+</section>
+
+<div class="electric-divider"></div>
+
+<section class="product-showcase">
+  <div class="showcase-visual clip-reveal">
+    <div class="showcase-glow"></div>
+    <img src="thapill-assets/hero-bottle.png" alt="THAPILL Bottle" class="showcase-bottle-img" id="showcaseBottle">
+    <img src="thapill-assets/box-packaging.png" alt="THAPILL Box" class="showcase-box-img" id="showcaseBox">
+  </div>
+  <div class="showcase-text">
+    <span class="section-tag reveal">// Premium from First Touch</span>
+    <h2 class="reveal reveal-delay-1">Not just a supplement.<br>It's a <em>statement</em>.</h2>
+    <p class="reveal reveal-delay-2">From the matte-black bottle to the custom packaging, every detail is designed to match the ambition of the people who take it. This isn't your dad's vitamin shelf &mdash; it's a daily ritual, packaged like it deserves to be.</p>
+    <div class="stat-row reveal reveal-delay-3">
+      <div class="stat-item"><div class="stat-val">30</div><div class="stat-label">Capsules</div></div>
+      <div class="stat-item"><div class="stat-val">1</div><div class="stat-label">Per Day</div></div>
+      <div class="stat-item"><div class="stat-val">6</div><div class="stat-label">Ingredients</div></div>
+      <div class="stat-item"><div class="stat-val">0</div><div class="stat-label">Fillers</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="electric-divider"></div>
+
+<section class="pricing" id="pricing">
+  <span class="section-tag reveal">// Choose Your Play</span>
+  <h2 class="section-title reveal reveal-delay-1">Lock in. Show up. Repeat.</h2>
+  <div class="pricing-grid">
+    <div class="price-card reveal reveal-delay-1"><div class="price-label">Try It</div><div class="price-amount">&pound;40</div><div class="price-per">One-time purchase</div><div style="height:30px"></div><ul class="price-features"><li>30 capsules (1 month)</li><li>No commitment</li><li>Free UK shipping</li></ul><button class="price-btn secondary">Buy Once</button></div>
+    <div class="price-card featured reveal reveal-delay-2"><div class="price-popular">Most Popular</div><div class="price-label">Lock In</div><div class="price-amount">&pound;25<span>/mo</span></div><div class="price-per">Monthly subscription</div><div class="price-save">SAVE 37%</div><ul class="price-features"><li>30 capsules every month</li><li>Cancel anytime</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn primary">Lock In &mdash; &pound;25/mo</button></div>
+    <div class="price-card reveal reveal-delay-3"><div class="price-label">3-Month Bulk</div><div class="price-amount">&pound;65</div><div class="price-per">&pound;21.67/month</div><div class="price-save">SAVE 46%</div><ul class="price-features"><li>90 capsules (3 months)</li><li>One payment</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn secondary">Buy 3 Months</button></div>
+  </div>
+</section>
+
+<div class="electric-divider"></div>
+
+<section class="social-strip">
+  <img src="thapill-assets/bg-testimonials.jpg" alt="" class="social-bg-img" id="socialBg">
+  <div class="social-bg-overlay"></div>
+  <span class="section-tag reveal">// From the Community</span>
+  <h2 class="section-title reveal reveal-delay-1" style="text-align:center; position:relative; z-index:2;">The aura is real.</h2>
+  <div class="social-grid">
+    <div class="social-card reveal reveal-delay-2"><div class="social-handle">@cryptodev_eth</div><div class="social-text">Been taking this for 2 weeks. Love that I know exactly what's in it &mdash; no proprietary blend nonsense. The caffeine + L-Theanine pairing is a classic for a reason.</div><div class="social-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div></div>
+    <div class="social-card reveal reveal-delay-3"><div class="social-handle">@sarahcodes_</div><div class="social-text">Swapped my morning stack for Thapill. One capsule, six ingredients, done. No more guessing doses or juggling five different bottles. The routine is locked in.</div><div class="social-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div></div>
+    <div class="social-card reveal reveal-delay-4"><div class="social-handle">@tradingwithkay</div><div class="social-text">Finally a supplement that doesn't look like it was designed by a hospital. The branding alone made me try it. The transparent label made me subscribe.</div><div class="social-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div></div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <img src="thapill-assets/capsules-scattered.png" alt="" class="final-cta-img">
+  <div class="bg-glow"></div>
+  <h2 class="reveal">Stop thinking about it.<br><span class="glow glitch" data-text="Lock in.">Lock in.</span></h2>
+  <p class="reveal reveal-delay-1">One capsule a day. That's the whole routine.<br>Join the people who stopped settling for random stacks and started taking this seriously.</p>
+  <a href="#pricing" class="mag-btn reveal reveal-delay-2">Get Thapill &mdash; &pound;25/mo</a>
+</section>
+
+<div class="disclaimer">This product is a food supplement and should not be used as a substitute for a varied diet. Do not exceed the recommended daily intake. Keep out of reach of children. Consult your doctor before use if pregnant, nursing, or on medication. Not intended to diagnose, treat, cure, or prevent any disease.</div>
+
+<footer>
+  <a href="#"><img src="thapill-assets/logo.png" alt="THAPILL" class="footer-logo-img"></a>
+  <div class="footer-links"><a href="#ingredients">Formula</a><a href="#">Shipping</a><a href="#">Returns</a><a href="mailto:hello@thapill.com">Contact</a><a href="#">Instagram</a><a href="#">TikTok</a></div>
+  <p style="color:var(--text-dim);font-size:12px;letter-spacing:1px;margin-top:4px;">hello@thapill.com</p>
+  <p>&copy; 2026 THAPILL</p>
+</footer>
+
+<script src="js/app.js"></script>
+</body>
+</html>
