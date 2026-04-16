@@ -9,6 +9,8 @@ const cookieParser = require('cookie-parser');
 require('./src/models/db');
 require('./db/seed');
 
+const authRoutes = require('./src/routes/auth');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -48,6 +50,8 @@ app.use(
 app.get('/healthz', (_req, res) => {
   res.json({ ok: true, service: 'thapill', time: new Date().toISOString() });
 });
+
+app.use('/api/auth', authRoutes);
 
 app.get('/api/products', (_req, res) => {
   const Product = require('./src/models/product');
