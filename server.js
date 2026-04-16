@@ -13,6 +13,7 @@ const authRoutes = require('./src/routes/auth');
 const dashboardRoutes = require('./src/routes/dashboard');
 const cartRoutes = require('./src/routes/cart');
 const checkoutRoutes = require('./src/routes/checkout');
+const rewardsRoutes = require('./src/routes/rewards');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -58,6 +59,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
+app.use('/api/rewards', rewardsRoutes);
 
 app.get('/order/success/:orderNumber', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'order-success.html'));

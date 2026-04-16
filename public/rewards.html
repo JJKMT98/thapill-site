@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THAPILL — Rewards</title>
+<link rel="icon" type="image/png" sizes="32x32" href="thapill-assets/favicon-32.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .rewards-page { min-height: 100vh; padding: 100px 48px 60px; max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
+
+  .rewards-nav { position: fixed; top: 0; width: 100%; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 16px 48px; background: rgba(3,3,6,0.92); border-bottom: 1px solid var(--border); backdrop-filter: blur(30px); }
+  .rewards-nav a { color: var(--text-dim); text-decoration: none; font-size: 13px; transition: color 0.2s; }
+  .rewards-nav a:hover { color: var(--electric); }
+  .rewards-nav-logo { height: 22px; opacity: 0.9; }
+
+  /* Points balance hero */
+  .points-hero { text-align: center; margin-bottom: 48px; }
+  .points-label { font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
+  .points-value { font-size: 72px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--neon-purple); }
+  .points-value.glow { text-shadow: 0 0 40px rgba(119,51,255,0.4); animation: breathPurple 3s ease-in-out infinite; }
+  @keyframes breathPurple { 0%,100% { text-shadow: 0 0 20px rgba(119,51,255,0.3); } 50% { text-shadow: 0 0 50px rgba(119,51,255,0.6); } }
+  .points-equiv { color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+  .points-equiv span { color: var(--electric); }
+
+  /* Tier progress */
+  .tier-section { margin-bottom: 48px; }
+  .section-label { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .section-label::before { content: '//'; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+  .tier-bar-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+  .tier-labels { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .tier-label { font-size: 12px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tier-label.active { color: var(--electric); font-weight: 700; }
+  .tier-label.dim { color: var(--text-dim); }
+  .tier-track { height: 8px; background: var(--surface); border-radius: 4px; overflow: hidden; position: relative; margin-bottom: 12px; }
+  .tier-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--electric), var(--neon-purple)); width: 0; transition: width 1.5s cubic-bezier(0.16,1,0.3,1); }
+  .tier-dot { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid var(--bg); }
+  .tier-dot.reached { background: var(--electric); box-shadow: 0 0 10px rgba(0,255,136,0.5); }
+  .tier-dot.future { background: var(--border); }
+  .tier-info { font-size: 13px; color: var(--text-dim); }
+  .tier-info span { color: var(--neon-purple); font-weight: 600; }
+
+  /* Earn more section */
+  .earn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 48px; }
+  .earn-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; justify-content: space-between; align-items: center; transition: border-color 0.3s; }
+  .earn-card.completed { border-color: rgba(0,255,136,0.2); }
+  .earn-card.available { animation: subtlePulse 3s ease-in-out infinite; }
+  @keyframes subtlePulse { 0%,100% { border-color: var(--border); } 50% { border-color: rgba(0,255,136,0.15); } }
+  .earn-card-label { font-size: 14px; }
+  .earn-card-status { font-size: 11px; color: var(--electric); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+  .earn-card-pts { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; color: var(--neon-purple); }
+  .earn-card-check { color: var(--electric); }
+
+  /* Redemption calculator */
+  .redeem-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 48px; }
+  .redeem-row { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .redeem-slider { flex: 1; min-width: 200px; }
+  .redeem-slider input[type=range] { width: 100%; -webkit-appearance: none; height: 6px; background: var(--surface); border-radius: 3px; outline: none; margin-top: 12px; }
+  .redeem-slider input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--neon-purple); cursor: pointer; box-shadow: 0 0 10px rgba(119,51,255,0.5); }
+  .redeem-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
+  .redeem-output { text-align: center; }
+  .redeem-pts { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--neon-purple); }
+  .redeem-val { font-size: 14px; color: var(--electric); margin-top: 4px; }
+
+  /* History */
+  .history-feed { display: flex; flex-direction: column; gap: 8px; }
+  .history-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+  .history-item-left { }
+  .history-item-type { font-size: 14px; text-transform: capitalize; }
+  .history-item-desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .history-amount { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; }
+  .history-amount.positive { color: var(--electric); }
+  .history-amount.negative { color: var(--neon-pink); }
+
+  .skeleton { background: linear-gradient(90deg, var(--card) 25%, rgba(21,21,37,0.8) 50%, var(--card) 75%); background-size: 200% 100%; animation: skeletonPulse 1.5s ease-in-out infinite; border-radius: 8px; }
+  @keyframes skeletonPulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  @media (max-width: 768px) {
+    .rewards-page { padding: 90px 20px 40px; }
+    .rewards-nav { padding: 14px 20px; }
+    .points-value { font-size: 48px; }
+    .earn-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<nav class="rewards-nav">
+  <a href="/"><img src="thapill-assets/logo.png" alt="THAPILL" class="rewards-nav-logo"></a>
+  <a href="/dashboard">&larr; Dashboard</a>
+</nav>
+
+<div class="rewards-page" id="rewardsContent">
+  <!-- Loading -->
+  <div id="skeleton" style="text-align:center;padding:60px 0;">
+    <div class="skeleton" style="width:200px;height:20px;margin:0 auto 16px;"></div>
+    <div class="skeleton" style="width:300px;height:60px;margin:0 auto 40px;"></div>
+    <div class="skeleton" style="height:100px;margin-bottom:24px;"></div>
+  </div>
+
+  <div id="realContent" style="display:none;">
+    <!-- Points hero -->
+    <div class="points-hero">
+      <div class="points-label">Your Points Balance</div>
+      <div class="points-value" id="pointsValue">0</div>
+      <div class="points-equiv">= <span id="pointsEquiv">£0.00</span> off your next order</div>
+    </div>
+
+    <!-- Tier progress -->
+    <div class="tier-section">
+      <div class="section-label">Tier Progress</div>
+      <div class="tier-bar-wrap">
+        <div class="tier-labels" id="tierLabels"></div>
+        <div class="tier-track" id="tierTrack">
+          <div class="tier-fill" id="tierFill"></div>
+        </div>
+        <div class="tier-info" id="tierInfo"></div>
+      </div>
+    </div>
+
+    <!-- Earn more -->
+    <div class="section-label">Ways to Earn</div>
+    <div class="earn-grid" id="earnGrid"></div>
+
+    <!-- Redemption calculator -->
+    <div class="section-label">Redemption Calculator</div>
+    <div class="redeem-section">
+      <div class="redeem-row">
+        <div class="redeem-slider">
+          <label style="font-size:13px;color:var(--text-dim);">Drag to see discount value</label>
+          <input type="range" id="redeemSlider" min="0" max="0" value="0" step="50">
+          <div class="redeem-labels"><span>0 pts</span><span id="redeemMax">0 pts</span></div>
+        </div>
+        <div class="redeem-output">
+          <div class="redeem-pts" id="redeemPts">0 pts</div>
+          <div class="redeem-val">= <span id="redeemVal">£0.00</span> off</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="section-label">Points History</div>
+    <div class="history-feed" id="historyFeed"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  async function load() {
+    const res = await fetch('/api/rewards');
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    const data = await res.json();
+
+    const hRes = await fetch('/api/rewards/history');
+    const hData = await hRes.json();
+
+    document.getElementById('skeleton').style.display = 'none';
+    document.getElementById('realContent').style.display = '';
+
+    render(data, hData.history);
+  }
+
+  function render(data, history) {
+    // Points
+    const pv = document.getElementById('pointsValue');
+    animateCount(pv, data.balance);
+    if (data.balance >= 500) pv.classList.add('glow');
+    document.getElementById('pointsEquiv').textContent = '£' + (data.balance / 100).toFixed(2);
+
+    // Tiers
+    const tierLabels = document.getElementById('tierLabels');
+    tierLabels.innerHTML = data.tiers.map(t => {
+      const cls = t.name === data.currentTier.name ? 'active' : 'dim';
+      return '<span class="tier-label ' + cls + '">' + t.label + '</span>';
+    }).join('');
+
+    // Tier bar with dots
+    const track = document.getElementById('tierTrack');
+    data.tiers.forEach((t, i) => {
+      if (i === 0) return;
+      const pct = (t.threshold / data.tiers[data.tiers.length - 1].threshold) * 100;
+      const dot = document.createElement('div');
+      dot.className = 'tier-dot ' + (data.lifetimeEarned >= t.threshold ? 'reached' : 'future');
+      dot.style.left = pct + '%';
+      track.appendChild(dot);
+    });
+
+    setTimeout(() => {
+      const overall = Math.min(100, (data.lifetimeEarned / data.tiers[data.tiers.length - 1].threshold) * 100);
+      document.getElementById('tierFill').style.width = overall + '%';
+    }, 100);
+
+    const tierInfo = document.getElementById('tierInfo');
+    if (data.nextTier) {
+      tierInfo.innerHTML = '<span>' + data.pointsToNextTier.toLocaleString() + '</span> pts to ' + data.nextTier.label;
+    } else {
+      tierInfo.innerHTML = 'You\'ve reached the highest tier!';
+      tierInfo.style.color = 'var(--neon-purple)';
+    }
+
+    // Earn actions
+    const earnGrid = document.getElementById('earnGrid');
+    earnGrid.innerHTML = data.actions.map(a => `
+      <div class="earn-card ${a.completed ? 'completed' : 'available'}">
+        <div>
+          <div class="earn-card-label">${a.label}</div>
+          <div class="earn-card-status">${a.completed ? '✓ Done' : 'Available'}</div>
+        </div>
+        <div class="earn-card-pts">${a.completed ? '<span class="earn-card-check">✓</span>' : '+' + a.points}</div>
+      </div>
+    `).join('');
+
+    // Redemption slider
+    const slider = document.getElementById('redeemSlider');
+    slider.max = data.balance;
+    document.getElementById('redeemMax').textContent = data.balance + ' pts';
+    slider.addEventListener('input', () => {
+      document.getElementById('redeemPts').textContent = Number(slider.value).toLocaleString() + ' pts';
+      document.getElementById('redeemVal').textContent = '£' + (Number(slider.value) / 100).toFixed(2);
+    });
+
+    // History
+    const feed = document.getElementById('historyFeed');
+    if (!history.length) {
+      feed.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:24px;">No activity yet.</div>';
+    } else {
+      feed.innerHTML = history.map(h => {
+        const sign = h.amount > 0 ? '+' : '';
+        const cls = h.amount > 0 ? 'positive' : 'negative';
+        const date = new Date(h.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        return `<div class="history-item"><div class="history-item-left"><div class="history-item-type">${h.type}</div><div class="history-item-desc">${h.description || ''} · ${date}</div></div><div class="history-amount ${cls}">${sign}${h.amount}</div></div>`;
+      }).join('');
+    }
+  }
+
+  function animateCount(el, target) {
+    const duration = 1400;
+    const start = performance.now();
+    function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      el.textContent = Math.round((1 - Math.pow(1 - p, 3)) * target).toLocaleString();
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
