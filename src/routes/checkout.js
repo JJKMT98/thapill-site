@@ -1,0 +1,148 @@
+const express = require('express');
+const router = express.Router();
+
+const { optionalAuth } = require('../middleware/auth');
+const { ensureSession } = require('../middleware/session');
+const Cart = require('../models/cart');
+const Order = require('../models/order');
+const Product = require('../models/product');
+const Address = require('../models/address');
+const Points = require('../models/points');
+const User = require('../models/user');
+const { generateOrderNumber } = require('../utils/order-number');
+
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? require('stripe')(process.env.STRIPE_SECRET_KEY)
+  : null;
+
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+
+router.post('/session', optionalAuth, ensureSession, async (req, res) => {
+  try {
+    const { address } = req.body;
+
+    const items = req.user
+      ? Cart.findByUser(req.user.id)
+      : Cart.findBySession(req.sessionId);
+
+    if (!items.length) return res.status(400).json({ error: 'Cart is empty' });
+
+    const subtotal = items.reduce((s, i) => s + i.price_pence * i.quantity, 0);
+    const orderNumber = generateOrderNumber();
+
+    let addressId = null;
+    if (req.user && address) {
+      const saved = Address.create({
+        user_id: req.user.id,
+        label: 'shipping',
+        line1: address.line1,
+        line2: address.line2 || null,
+        city: address.city,
+        county: address.county || null,
+        postcode: address.postcode,
+        country: address.country || 'GB',
+        is_default: 1,
+      });
+      addressId = saved.id;
+    }
+
+    const pointsEarned = Math.floor(subtotal / 100) * 10;
+
+    const order = Order.create({
+      order_number: orderNumber,
+      user_id: req.user ? req.user.id : null,
+      address_id: addressId,
+      subtotal_pence: subtotal,
+      discount_pence: 0,
+      shipping_pence: 0,
+      total_pence: subtotal,
+      points_earned: req.user ? pointsEarned : 0,
+      points_redeemed: 0,
+      stripe_session_id: null,
+      notes: req.user ? null : JSON.stringify(address || {}),
+    });
+
+    for (const item of items) {
+      Order.addItem({
+        order_id: order.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price_pence: item.price_pence,
+        total_pence: item.price_pence * item.quantity,
+      });
+    }
+
+    if (stripe) {
+      const lineItems = items.map((item) => ({
+        price_data: {
+          currency: 'gbp',
+          product_data: { name: item.name, images: [BASE_URL + item.image_url] },
+          unit_amount: item.price_pence,
+          ...(item.type === 'subscription' ? { recurring: { interval: 'month' } } : {}),
+        },
+        quantity: item.quantity,
+      }));
+
+      const hasSubscription = items.some((i) => i.type === 'subscription');
+      const mode = hasSubscription ? 'subscription' : 'payment';
+
+      const session = await stripe.checkout.sessions.create({
+        mode,
+        line_items: lineItems,
+        success_url: `${BASE_URL}/order/success/${orderNumber}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${BASE_URL}/checkout?cancelled=1`,
+        customer_email: req.user ? req.user.email : undefined,
+        metadata: { order_number: orderNumber, user_id: req.user ? String(req.user.id) : '0' },
+        shipping_address_collection: { allowed_countries: ['GB'] },
+      });
+
+      Order.updateStatus(order.id, 'pending');
+      const db = require('../models/db');
+      db.prepare('UPDATE orders SET stripe_session_id = ? WHERE id = ?').run(session.id, order.id);
+
+      if (req.user) Cart.clearUser(req.user.id);
+      else {
+        const cartDb = require('../models/db');
+        cartDb.prepare('DELETE FROM cart_items WHERE session_id = ?').run(req.sessionId);
+      }
+
+      return res.json({ url: session.url, order_number: orderNumber });
+    }
+
+    // No Stripe configured — mark as paid for dev/testing
+    Order.updateStatus(order.id, 'paid');
+    if (req.user) {
+      Points.add({ user_id: req.user.id, amount: pointsEarned, type: 'purchase', description: `Order ${orderNumber}`, reference_id: order.id });
+      const orderCount = Order.countByUser(req.user.id);
+      if (orderCount === 1) {
+        Points.add({ user_id: req.user.id, amount: 200, type: 'purchase', description: 'First order bonus', reference_id: order.id });
+      }
+      Cart.clearUser(req.user.id);
+    } else {
+      const cartDb = require('../models/db');
+      cartDb.prepare('DELETE FROM cart_items WHERE session_id = ?').run(req.sessionId);
+    }
+
+    res.json({ url: `/order/success/${orderNumber}`, order_number: orderNumber });
+  } catch (err) {
+    console.error('[checkout] session error:', err);
+    res.status(500).json({ error: 'Checkout failed' });
+  }
+});
+
+router.get('/success/:orderNumber', (req, res) => {
+  const order = Order.findByNumber(req.params.orderNumber);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+
+  const items = Order.getItems(order.id);
+  res.json({
+    order_number: order.order_number,
+    status: order.status,
+    total_pence: order.total_pence,
+    points_earned: order.points_earned,
+    items: items.map((i) => ({ name: i.name, quantity: i.quantity, total_pence: i.total_pence })),
+    created_at: order.created_at,
+  });
+});
+
+module.exports = router;

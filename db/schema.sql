@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
 CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_number TEXT UNIQUE NOT NULL,
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    user_id INTEGER REFERENCES users(id),
     address_id INTEGER REFERENCES addresses(id),
     status TEXT DEFAULT 'pending',
     subtotal_pence INTEGER NOT NULL,

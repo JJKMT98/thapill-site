@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THAPILL — Order Confirmed</title>
+<link rel="icon" type="image/png" sizes="32x32" href="thapill-assets/favicon-32.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .success-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; padding: 40px 20px; }
+  .success-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 48px 40px; max-width: 520px; width: 100%; text-align: center; position: relative; overflow: hidden; }
+  .success-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--electric), transparent); }
+
+  .check-circle { width: 72px; height: 72px; margin: 0 auto 24px; position: relative; }
+  .check-circle svg { width: 72px; height: 72px; }
+  .check-circle .circle { stroke: var(--electric); stroke-width: 2; fill: none; stroke-dasharray: 200; stroke-dashoffset: 200; animation: drawCircle 0.8s ease forwards; }
+  .check-circle .check { stroke: var(--electric); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: drawCheck 0.5s ease forwards 0.6s; }
+  @keyframes drawCircle { to { stroke-dashoffset: 0; } }
+  @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+
+  .success-title { font-size: 28px; font-weight: 600; margin-bottom: 8px; color: var(--electric); }
+  .order-num { font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--text); margin-bottom: 8px; }
+  .success-sub { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+
+  .success-items { text-align: left; margin-bottom: 24px; border-top: 1px solid var(--border); }
+  .success-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(21,21,37,0.5); font-size: 14px; }
+  .success-total { display: flex; justify-content: space-between; padding: 16px 0 0; font-size: 18px; font-weight: 700; }
+  .success-total span:last-child { color: var(--electric); }
+
+  .points-earned { background: rgba(119,51,255,0.1); border: 1px solid rgba(119,51,255,0.2); border-radius: 10px; padding: 14px 18px; margin-bottom: 24px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--neon-purple); }
+  .points-earned span { font-size: 24px; font-weight: 700; }
+
+  .success-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .success-btn { padding: 12px 24px; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; transition: transform 0.2s; cursor: pointer; border: none; }
+  .success-btn:hover { transform: translateY(-2px); }
+  .success-btn.primary { background: var(--electric); color: var(--bg); }
+  .success-btn.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+  .confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+
+  .glow-bg { position: fixed; top: 50%; left: 50%; width: 500px; height: 500px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(0,255,136,0.08) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+
+  .signup-cta { background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.15); border-radius: 10px; padding: 16px; margin-top: 24px; font-size: 13px; color: var(--text-dim); }
+  .signup-cta a { color: var(--electric); text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="glow-bg"></div>
+<canvas class="confetti-canvas" id="confetti"></canvas>
+
+<div class="success-page">
+  <div class="success-card">
+    <div class="check-circle">
+      <svg viewBox="0 0 72 72">
+        <circle class="circle" cx="36" cy="36" r="33" />
+        <polyline class="check" points="22,38 32,48 50,26" />
+      </svg>
+    </div>
+    <div class="success-title">Order Confirmed</div>
+    <div class="order-num" id="orderNum"></div>
+    <div class="success-sub">Thank you for your order. You'll receive a confirmation email shortly.</div>
+
+    <div class="success-items" id="successItems"></div>
+    <div class="success-total"><span>Total</span><span id="successTotal"></span></div>
+
+    <div class="points-earned" id="pointsEarned" style="display:none; margin-top: 20px;">
+      You earned <span id="pointsCount">0</span> pts
+    </div>
+
+    <div class="success-actions" style="margin-top: 24px;">
+      <a href="/dashboard" class="success-btn primary">View Dashboard</a>
+      <a href="/" class="success-btn secondary">Back to Shop</a>
+    </div>
+
+    <div class="signup-cta" id="signupCta" style="display:none;">
+      <a href="/register">Create an account</a> to track your order, earn reward points, and get exclusive perks.
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const orderNumber = window.location.pathname.split('/').pop();
+  const fmt = p => '£' + (p / 100).toFixed(2);
+
+  async function load() {
+    const res = await fetch('/api/checkout/success/' + orderNumber);
+    if (!res.ok) { document.getElementById('orderNum').textContent = 'Order not found'; return; }
+    const data = await res.json();
+
+    document.getElementById('orderNum').textContent = data.order_number;
+
+    const itemsHtml = data.items.map(i =>
+      '<div class="success-item"><span>' + i.name + ' ×' + i.quantity + '</span><span>' + fmt(i.total_pence) + '</span></div>'
+    ).join('');
+    document.getElementById('successItems').innerHTML = itemsHtml;
+    document.getElementById('successTotal').textContent = fmt(data.total_pence);
+
+    if (data.points_earned > 0) {
+      document.getElementById('pointsEarned').style.display = '';
+      animateCount('pointsCount', data.points_earned);
+    }
+
+    // Check if guest
+    const meRes = await fetch('/api/auth/me').catch(() => null);
+    if (!meRes || !meRes.ok) {
+      document.getElementById('signupCta').style.display = '';
+    }
+
+    fireConfetti();
+  }
+
+  function animateCount(id, target) {
+    const el = document.getElementById(id);
+    const duration = 1200;
+    const start = performance.now();
+    function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      el.textContent = Math.round((1 - Math.pow(1 - p, 3)) * target);
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function fireConfetti() {
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const colors = ['#00ff88', '#7733ff', '#4488ff', '#66ffbb', '#ff44aa'];
+    const particles = [];
+    for (let i = 0; i < 80; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+        y: canvas.height / 2,
+        vx: (Math.random() - 0.5) * 12,
+        vy: -Math.random() * 14 - 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 6 + 2,
+        life: 1,
+      });
+    }
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      for (const p of particles) {
+        if (p.life <= 0) continue;
+        alive = true;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.3;
+        p.life -= 0.01;
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      }
+      if (alive) requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
