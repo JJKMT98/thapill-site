@@ -95,6 +95,7 @@ describe('Auth', () => {
 
 describe('Cart', () => {
   let cookie;
+  let itemId;
 
   test('guest can add to cart', async () => {
     const res = await req('POST', '/api/cart/add', { product_id: 1 });
@@ -102,6 +103,7 @@ describe('Cart', () => {
     assert.strictEqual(res.body.items.length, 1);
     assert.strictEqual(res.body.total_pence, 4000);
     cookie = extractCookie(res.cookie);
+    itemId = res.body.items[0].id;
   });
 
   test('guest can get cart', async () => {
@@ -111,13 +113,13 @@ describe('Cart', () => {
   });
 
   test('guest can update quantity', async () => {
-    const res = await req('PATCH', '/api/cart/1', { quantity: 2 }, cookie);
+    const res = await req('PATCH', '/api/cart/' + itemId, { quantity: 2 }, cookie);
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.total_pence, 8000);
   });
 
   test('guest can remove item', async () => {
-    const res = await req('DELETE', '/api/cart/1', null, cookie);
+    const res = await req('DELETE', '/api/cart/' + itemId, null, cookie);
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.items.length, 0);
   });
