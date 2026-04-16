@@ -72,6 +72,7 @@
   .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 1px; background: var(--electric); transition: width 0.3s; }
   .nav-links a:hover { color: var(--text); }
   .nav-links a:hover::after { width: 100%; }
+  .nav-auth-link { font-weight: 500; }
 
   .mag-btn { display: inline-block; padding: 14px 36px; background: var(--electric); color: #030306; border: none; border-radius: 6px; font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: none; transition: transform 0.2s ease, box-shadow 0.3s; text-decoration: none; position: relative; overflow: hidden; }
   .mag-btn::before { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-radius: 50%; background: rgba(255,255,255,0.2); transform: translate(-50%,-50%); transition: width 0.5s, height 0.5s; }

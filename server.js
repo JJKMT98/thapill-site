@@ -11,6 +11,7 @@ require('./db/seed');
 
 const authRoutes = require('./src/routes/auth');
 const dashboardRoutes = require('./src/routes/dashboard');
+const cartRoutes = require('./src/routes/cart');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,6 +55,7 @@ app.get('/healthz', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/cart', cartRoutes);
 
 app.get('/api/products', (_req, res) => {
   const Product = require('./src/models/product');
