@@ -204,6 +204,7 @@
 <script src="js/app.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/chat.js"></script>
+<script src="js/pilly.js"></script>
 <script>
 document.querySelectorAll('[data-add-product]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -217,6 +218,32 @@ fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(data => {
     el.href = '/dashboard';
   }
 }).catch(() => {});
+
+// Pilly placements
+(function () {
+  if (!window.Pilly) return;
+
+  // Sit on the nav LOCK IN button
+  const lockInBtn = document.querySelector('nav .nav-links .mag-btn');
+  if (lockInBtn) window.Pilly.sitOnButton(lockInBtn, { size: 46 });
+
+  // March across the hero section
+  const hero = document.getElementById('heroSection');
+  if (hero) window.Pilly.marchAcross(hero, { size: 64, bottom: 24, duration: 16 });
+
+  // Surprised Pilly pops up when cart count changes (new item added)
+  let lastCartCount = 0;
+  const badge = document.querySelector('.cart-badge');
+  const cartBtn = document.querySelector('[data-cart-trigger]');
+  if (badge && cartBtn) {
+    const obs = new MutationObserver(() => {
+      const n = Number(badge.textContent) || 0;
+      if (n > lastCartCount) window.Pilly.popUpAt(cartBtn, { variant: 'surprised', size: 42 });
+      lastCartCount = n;
+    });
+    obs.observe(badge, { childList: true, characterData: true, subtree: true });
+  }
+})();
 </script>
 </body>
 </html>
