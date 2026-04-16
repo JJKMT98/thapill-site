@@ -13,7 +13,7 @@
 <!-- Open Graph / WhatsApp / Social -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.thapill.com/">
-<meta property="og:title" content="THAPILL — Your Edge. Non-Negotiable.">
+<meta property="og:title" content="THAPILL — Your Edge. But Different.">
 <meta property="og:description" content="The daily nootropic for traders, coders, and creators who refuse to coast. 6 active ingredients. Full-dose. Zero proprietary blends.">
 <meta property="og:image" content="https://www.thapill.com/thapill-assets/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -22,7 +22,7 @@
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="THAPILL — Your Edge. Non-Negotiable.">
+<meta name="twitter:title" content="THAPILL — Your Edge. But Different.">
 <meta name="twitter:description" content="The daily nootropic for traders, coders, and creators who refuse to coast.">
 <meta name="twitter:image" content="https://www.thapill.com/thapill-assets/og-image.jpg">
 
@@ -158,7 +158,7 @@
   .hero h1 .glow { color: var(--electric); text-shadow: 0 0 40px rgba(0,255,136,0.35), 0 0 120px rgba(0,255,136,0.1); position: relative; }
 
   .glitch { position: relative; display: inline-block; }
-  #heroWord { display: inline-block; min-width: 8em; text-align: left; }
+  #heroWord { display: inline-block; min-width: 6.5em; text-align: left; }
   .glitch::before, .glitch::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; }
   .glitch::before { color: var(--neon-blue); z-index: -1; animation: glitch1 3s infinite linear alternate-reverse; }
   .glitch::after { color: var(--neon-pink); z-index: -1; animation: glitch2 2s infinite linear alternate-reverse; }
@@ -352,7 +352,7 @@
     .pill-hero-img { width: 250px; }
     .pill-hero-img-wrap { width: 280px; height: 280px; }
     .pill-section { padding: 100px 20px; min-height: auto; }
-    #heroWord { min-width: 7em; }
+    #heroWord { min-width: 5em; }
   }
 </style>
 </head>
@@ -388,7 +388,7 @@
     <div class="hero-tag reveal">Built for Traders, Coders &amp; Creators</div>
     <h1>
       <span class="line reveal reveal-delay-1" data-split>Your edge.</span>
-      <span class="line reveal reveal-delay-2" data-split><span class="glow glitch" data-text="Non-negotiable." id="heroWord">Non-negotiable.</span></span>
+      <span class="line reveal reveal-delay-2" data-split>But <span class="glow glitch" data-text="different." id="heroWord">different.</span></span>
     </h1>
     <p class="hero-sub reveal reveal-delay-3">One capsule. Six ingredients. Zero BS.<br>The daily nootropic for people who build things and refuse to coast.</p>
     <div class="hero-ctas reveal reveal-delay-4">
@@ -640,7 +640,7 @@ class Scramble{
   update(){let out='',done=0;for(let i=0;i<this.queue.length;i++){let{from,to,start,end,char}=this.queue[i];if(this.frame>=end){done++;out+=to;}else if(this.frame>=start){if(!char||Math.random()<0.3){char=this.chars[Math.floor(Math.random()*this.chars.length)];this.queue[i].char=char;}out+=`<span style="color:var(--text-dim)">${char}</span>`;}else out+=from;}this.el.innerHTML=out;if(done===this.queue.length)this.resolve();else{this.raf=requestAnimationFrame(()=>this.update());this.frame++;}}
 }
 const heroWord=document.getElementById('heroWord');
-if(heroWord){const sObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){const fx=new Scramble(heroWord);const words=['Non-negotiable.','unstoppable.','locked in.','relentless.','Non-negotiable.'];let wi=0;const next=()=>{fx.setText(words[wi]).then(()=>setTimeout(next,2200));wi=(wi+1)%words.length;};setTimeout(next,600);sObs.unobserve(heroWord);}});},{threshold:0.5});sObs.observe(heroWord);}
+if(heroWord){const sObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){const fx=new Scramble(heroWord);const words=['different.','unstoppable.','locked in.','relentless.','different.'];let wi=0;const next=()=>{fx.setText(words[wi]).then(()=>setTimeout(next,2200));wi=(wi+1)%words.length;};setTimeout(next,600);sObs.unobserve(heroWord);}});},{threshold:0.5});sObs.observe(heroWord);}
 
 // ===== MAGNETIC BUTTONS =====
 document.querySelectorAll('.mag-btn').forEach(btn=>{
