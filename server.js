@@ -6,6 +6,9 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
+require('./src/models/db');
+require('./db/seed');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -44,6 +47,11 @@ app.use(
 
 app.get('/healthz', (_req, res) => {
   res.json({ ok: true, service: 'thapill', time: new Date().toISOString() });
+});
+
+app.get('/api/products', (_req, res) => {
+  const Product = require('./src/models/product');
+  res.json(Product.listActive());
 });
 
 app.use((_req, res) => {
