@@ -25,29 +25,41 @@ async function send(to, subject, html) {
   return getTransporter().sendMail({ from, to, subject, html });
 }
 
+const templates = require('../utils/email-templates');
+
 async function sendVerification(user, token) {
-  const link = `${BASE_URL}/api/auth/verify/${token}`;
-  return send(user.email, 'Verify your thaPill account', `
-    <div style="background:#030306;color:#e8e8f0;padding:40px;font-family:'Space Grotesk',Arial,sans-serif;">
-      <h2 style="color:#00ff88;">Welcome to thaPill, ${user.first_name}.</h2>
-      <p>Your UID: <strong style="font-family:'JetBrains Mono',monospace;color:#00ff88;">${user.uid}</strong></p>
-      <p>Verify your email to unlock the full experience:</p>
-      <a href="${link}" style="display:inline-block;padding:14px 32px;background:#00ff88;color:#030306;text-decoration:none;border-radius:8px;font-weight:600;margin:16px 0;">Verify Email</a>
-      <p style="color:#55556a;font-size:13px;margin-top:24px;">If you didn't sign up, ignore this email.</p>
-    </div>
-  `);
+  const t = templates.welcome(user, token);
+  return send(user.email, t.subject, t.html);
 }
 
 async function sendPasswordReset(user, token) {
-  const link = `${BASE_URL}/reset-password?token=${token}`;
-  return send(user.email, 'Reset your thaPill password', `
-    <div style="background:#030306;color:#e8e8f0;padding:40px;font-family:'Space Grotesk',Arial,sans-serif;">
-      <h2 style="color:#00ff88;">Password reset</h2>
-      <p>Click below to reset your password. This link expires in 1 hour.</p>
-      <a href="${link}" style="display:inline-block;padding:14px 32px;background:#00ff88;color:#030306;text-decoration:none;border-radius:8px;font-weight:600;margin:16px 0;">Reset Password</a>
-      <p style="color:#55556a;font-size:13px;margin-top:24px;">If you didn't request this, ignore this email.</p>
-    </div>
-  `);
+  const t = templates.passwordReset(user, token);
+  return send(user.email, t.subject, t.html);
 }
 
-module.exports = { send, sendVerification, sendPasswordReset };
+async function sendOrderConfirmation(user, order, items) {
+  const t = templates.orderConfirmation(order, items);
+  return send(user.email, t.subject, t.html);
+}
+
+async function sendShipped(user, order, shipment) {
+  const t = templates.shipped(order, shipment);
+  return send(user.email, t.subject, t.html);
+}
+
+async function sendDelivered(user, order) {
+  const t = templates.delivered(order);
+  return send(user.email, t.subject, t.html);
+}
+
+async function sendReferralSuccess(referrer, friendName) {
+  const t = templates.referralSuccess(referrer, friendName);
+  return send(referrer.email, t.subject, t.html);
+}
+
+async function sendTierUpgrade(user, newTier) {
+  const t = templates.tierUpgrade(user, newTier);
+  return send(user.email, t.subject, t.html);
+}
+
+module.exports = { send, sendVerification, sendPasswordReset, sendOrderConfirmation, sendShipped, sendDelivered, sendReferralSuccess, sendTierUpgrade };
