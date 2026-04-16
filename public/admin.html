@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THAPILL — Admin</title>
+<link rel="icon" type="image/png" sizes="32x32" href="thapill-assets/favicon-32.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .admin-page { min-height: 100vh; padding: 100px 48px 60px; max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+  .admin-nav { position: fixed; top: 0; width: 100%; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 16px 48px; background: rgba(3,3,6,0.92); border-bottom: 1px solid var(--border); backdrop-filter: blur(30px); }
+  .admin-nav-logo { height: 22px; opacity: 0.9; }
+  .admin-nav-links { display: flex; gap: 20px; }
+  .admin-nav-links a, .admin-nav-links button { color: var(--text-dim); text-decoration: none; font-size: 13px; cursor: pointer; background: none; border: none; font-family: inherit; transition: color 0.2s; padding: 4px 8px; border-radius: 4px; }
+  .admin-nav-links a:hover, .admin-nav-links button:hover { color: var(--electric); }
+  .admin-nav-links a.active { color: var(--electric); background: rgba(0,255,136,0.08); }
+  .admin-title { font-size: 28px; font-weight: 600; margin-bottom: 32px; }
+
+  /* Stats */
+  .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 40px; }
+  .admin-stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .admin-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; }
+  .admin-stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+  /* Table */
+  .admin-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  .admin-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .admin-table td { padding: 12px; border-bottom: 1px solid rgba(21,21,37,0.5); font-size: 14px; }
+  .admin-table tbody tr:hover { background: rgba(0,255,136,0.02); }
+  .admin-table a { color: var(--electric); text-decoration: none; }
+  .admin-table a:hover { text-decoration: underline; }
+  .status-badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; }
+  .status-pending { color: #4488ff; background: rgba(68,136,255,0.1); }
+  .status-paid, .status-processing { color: #ffaa00; background: rgba(255,170,0,0.1); }
+  .status-shipped { color: #66ffbb; background: rgba(0,255,136,0.08); }
+  .status-delivered { color: #00ff88; background: rgba(0,255,136,0.15); }
+  .status-cancelled { color: #ff44aa; background: rgba(255,68,170,0.1); }
+
+  /* Filter */
+  .filter-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; background: var(--card); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all 0.2s; }
+  .filter-btn.active, .filter-btn:hover { border-color: var(--electric); color: var(--electric); }
+
+  /* Sections */
+  .admin-section { display: none; }
+  .admin-section.active { display: block; }
+  .section-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+
+  @media (max-width: 768px) {
+    .admin-page { padding: 90px 16px 40px; }
+    .admin-nav { padding: 14px 16px; }
+    .admin-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<nav class="admin-nav">
+  <a href="/"><img src="thapill-assets/logo.png" alt="THAPILL" class="admin-nav-logo"></a>
+  <div class="admin-nav-links">
+    <a href="#" data-tab="dashboard" class="active">Dashboard</a>
+    <a href="#" data-tab="orders">Orders</a>
+    <a href="#" data-tab="users">Users</a>
+    <a href="#" data-tab="products">Products</a>
+    <a href="#" data-tab="chat">Chat</a>
+  </div>
+</nav>
+
+<div class="admin-page">
+  <!-- Dashboard -->
+  <div class="admin-section active" id="sec-dashboard">
+    <h1 class="admin-title">Admin Dashboard</h1>
+    <div class="admin-stats" id="adminStats"></div>
+  </div>
+
+  <!-- Orders -->
+  <div class="admin-section" id="sec-orders">
+    <div class="section-title">Orders</div>
+    <div class="filter-row" id="orderFilters">
+      <button class="filter-btn active" data-status="">All</button>
+      <button class="filter-btn" data-status="pending">Pending</button>
+      <button class="filter-btn" data-status="paid">Paid</button>
+      <button class="filter-btn" data-status="shipped">Shipped</button>
+      <button class="filter-btn" data-status="delivered">Delivered</button>
+    </div>
+    <table class="admin-table"><thead><tr><th>Order</th><th>User</th><th>Status</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead><tbody id="orderRows"></tbody></table>
+  </div>
+
+  <!-- Users -->
+  <div class="admin-section" id="sec-users">
+    <div class="section-title">Users</div>
+    <table class="admin-table"><thead><tr><th>UID</th><th>Name</th><th>Email</th><th>Tier</th><th>Points</th><th>Joined</th></tr></thead><tbody id="userRows"></tbody></table>
+  </div>
+
+  <!-- Products -->
+  <div class="admin-section" id="sec-products">
+    <div class="section-title">Products</div>
+    <table class="admin-table"><thead><tr><th>Name</th><th>Slug</th><th>Price</th><th>Type</th><th>Stock</th><th>Active</th></tr></thead><tbody id="productRows"></tbody></table>
+  </div>
+
+  <!-- Chat -->
+  <div class="admin-section" id="sec-chat">
+    <div class="section-title">Live Chat</div>
+    <div id="chatRooms" style="display:flex;gap:16px;">
+      <div id="roomList" style="width:240px;"></div>
+      <div id="roomMessages" style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;min-height:400px;max-height:500px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const fmt = p => '£' + (p / 100).toFixed(2);
+
+  // Tab switching
+  document.querySelectorAll('[data-tab]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('[data-tab]').forEach(t => t.classList.remove('active'));
+      document.getElementById('sec-' + a.dataset.tab).classList.add('active');
+      a.classList.add('active');
+      if (a.dataset.tab === 'orders') loadOrders();
+      if (a.dataset.tab === 'users') loadUsers();
+      if (a.dataset.tab === 'products') loadProducts();
+      if (a.dataset.tab === 'chat') loadChatRooms();
+    });
+  });
+
+  // Stats
+  async function loadStats() {
+    const res = await fetch('/api/admin/stats');
+    if (res.status === 401 || res.status === 403) { window.location.href = '/login'; return; }
+    const d = await res.json();
+    document.getElementById('adminStats').innerHTML = [
+      { label: 'Total Orders', val: d.totalOrders },
+      { label: 'Revenue', val: fmt(d.revenue) },
+      { label: 'Total Users', val: d.totalUsers },
+      { label: 'New Today', val: d.newUsersToday },
+      { label: 'Active Buyers', val: d.activeSubs },
+    ].map(s => `<div class="admin-stat"><div class="admin-stat-val">${s.val}</div><div class="admin-stat-label">${s.label}</div></div>`).join('');
+  }
+
+  // Orders
+  let orderFilter = '';
+  document.getElementById('orderFilters').addEventListener('click', (e) => {
+    if (!e.target.dataset.status && e.target.dataset.status !== '') return;
+    orderFilter = e.target.dataset.status;
+    document.querySelectorAll('#orderFilters .filter-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    loadOrders();
+  });
+
+  async function loadOrders() {
+    const url = '/api/admin/orders' + (orderFilter ? '?status=' + orderFilter : '');
+    const res = await fetch(url);
+    const d = await res.json();
+    document.getElementById('orderRows').innerHTML = d.orders.map(o => {
+      const date = new Date(o.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short'});
+      return `<tr><td style="font-family:monospace;color:var(--electric);">${o.order_number}</td><td>${o.user_id || 'Guest'}</td><td><span class="status-badge status-${o.status}">${o.status}</span></td><td>${fmt(o.total_pence)}</td><td>${date}</td><td><select data-order-id="${o.id}" class="status-select" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px;font-size:11px;"><option value="pending" ${o.status==='pending'?'selected':''}>Pending</option><option value="paid" ${o.status==='paid'?'selected':''}>Paid</option><option value="processing" ${o.status==='processing'?'selected':''}>Processing</option><option value="shipped" ${o.status==='shipped'?'selected':''}>Shipped</option><option value="delivered" ${o.status==='delivered'?'selected':''}>Delivered</option><option value="cancelled" ${o.status==='cancelled'?'selected':''}>Cancelled</option></select></td></tr>`;
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);">No orders</td></tr>';
+
+    document.querySelectorAll('.status-select').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        await fetch('/api/admin/orders/' + sel.dataset.orderId + '/status', {
+          method: 'PATCH', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({status: sel.value}),
+        });
+        loadOrders();
+      });
+    });
+  }
+
+  // Users
+  async function loadUsers() {
+    const res = await fetch('/api/admin/users');
+    const d = await res.json();
+    document.getElementById('userRows').innerHTML = d.users.map(u => {
+      const date = new Date(u.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+      return `<tr><td style="font-family:monospace;color:var(--electric);">${u.uid}</td><td>${u.first_name} ${u.last_name}</td><td>${u.email}</td><td>${u.tier}</td><td style="color:var(--neon-purple);">${u.points_balance}</td><td>${date}</td></tr>`;
+    }).join('');
+  }
+
+  // Products
+  async function loadProducts() {
+    const res = await fetch('/api/admin/products');
+    const d = await res.json();
+    document.getElementById('productRows').innerHTML = d.products.map(p =>
+      `<tr><td>${p.name}</td><td style="font-family:monospace;">${p.slug}</td><td>${fmt(p.price_pence)}</td><td>${p.type}</td><td>${p.stock}</td><td>${p.active ? '✓' : '✗'}</td></tr>`
+    ).join('');
+  }
+
+  // Chat
+  async function loadChatRooms() {
+    const res = await fetch('/api/admin/chat/rooms');
+    const d = await res.json();
+    const list = document.getElementById('roomList');
+    if (!d.rooms.length) { list.innerHTML = '<div style="color:var(--text-dim);">No conversations yet.</div>'; return; }
+    list.innerHTML = d.rooms.map(r => {
+      const time = new Date(r.last_message_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+      return `<div data-room="${r.room_id}" style="padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color 0.2s;font-size:13px;"><div style="color:var(--text);">${r.room_id}</div><div style="color:var(--text-dim);font-size:11px;">${time}</div></div>`;
+    }).join('');
+    list.querySelectorAll('[data-room]').forEach(el => {
+      el.addEventListener('click', () => loadRoomMessages(el.dataset.room));
+      el.addEventListener('mouseenter', () => el.style.borderColor = 'var(--electric)');
+      el.addEventListener('mouseleave', () => el.style.borderColor = 'var(--border)');
+    });
+  }
+
+  async function loadRoomMessages(roomId) {
+    const res = await fetch('/api/admin/chat/' + roomId);
+    const d = await res.json();
+    const el = document.getElementById('roomMessages');
+    el.innerHTML = d.messages.map(m => {
+      const cls = m.sender === 'user' ? 'color:var(--electric)' : 'color:var(--text-dim)';
+      const time = new Date(m.created_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+      return `<div style="margin-bottom:8px;"><span style="font-family:monospace;font-size:11px;${cls}">${m.sender}</span> <span style="color:var(--text-dim);font-size:10px;">${time}</span><div style="font-size:14px;margin-top:2px;">${m.message}</div></div>`;
+    }).join('') || '<div style="color:var(--text-dim);">No messages.</div>';
+  }
+
+  loadStats();
+})();
+</script>
+</body>
+</html>

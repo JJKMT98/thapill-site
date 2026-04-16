@@ -18,6 +18,7 @@ const referralRoutes = require('./src/routes/referrals');
 const trackingRoutes = require('./src/routes/tracking');
 const chatRoutes = require('./src/routes/chat');
 const { initSocket } = require('./src/services/socket');
+const adminRoutes = require('./src/routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -75,6 +76,7 @@ app.get('/tracking/:orderNumber', (_req, res) => {
 });
 
 app.use('/api/chat', chatRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/order/success/:orderNumber', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'order-success.html'));
