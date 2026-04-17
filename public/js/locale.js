@@ -987,8 +987,8 @@
 
     const style = document.createElement('style');
     style.textContent = `
-      .locale-switcher { position: fixed; top: 18px; right: 100px; z-index: 9985; }
-      [dir="rtl"] .locale-switcher { right: auto; left: 100px; }
+      .locale-switcher { position: fixed; top: 76px; right: 20px; z-index: 9985; }
+      [dir="rtl"] .locale-switcher { right: auto; left: 20px; }
       .locale-trigger {
         display: flex; align-items: center; gap: 6px;
         background: rgba(8,8,15,0.6); border: 1px solid var(--border, #151525);
