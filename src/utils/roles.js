@@ -74,4 +74,17 @@ function isBootstrapEmail(email) {
   return !!email && getBootstrapEmails().includes(email.toLowerCase());
 }
 
-module.exports = { ROLES, ROLE_KEYS, MATRIX, can, isValidRole, getBootstrapEmails, isBootstrapEmail };
+// Hard-coded master admin. Can never be demoted or revoked from the UI,
+// even by another owner. Guaranteed re-promoted to owner on every login
+// via the promoteIfBootstrap middleware hook.
+const MASTER_EMAIL = (process.env.MASTER_ADMIN_EMAIL || 'justjaved@live.co.uk').toLowerCase();
+function isMasterEmail(email) {
+  return !!email && email.toLowerCase() === MASTER_EMAIL;
+}
+
+module.exports = {
+  ROLES, ROLE_KEYS, MATRIX,
+  can, isValidRole,
+  getBootstrapEmails, isBootstrapEmail,
+  MASTER_EMAIL, isMasterEmail,
+};

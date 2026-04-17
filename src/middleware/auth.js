@@ -1,14 +1,20 @@
 const { verifyJWT, COOKIE_NAME } = require('../utils/tokens');
 const User = require('../models/user');
-const { can, isBootstrapEmail, isValidRole } = require('../utils/roles');
+const { can, isBootstrapEmail, isMasterEmail, isValidRole } = require('../utils/roles');
 
-// Lazily promote a bootstrap email (from ADMIN_EMAILS / ADMIN_EMAIL env
-// var, or the default justjaved@live.co.uk) to 'owner' the first time
-// they're seen with a null/customer role. This means Javed can
-// register on prod with justjaved@live.co.uk and immediately be owner.
+// Promotion rules:
+//   - Master admin email (justjaved@live.co.uk) is always forced back
+//     to 'owner' on every auth'd request — guarantees Javed can never
+//     be locked out even if his role gets nulled/demoted in the DB.
+//   - Other bootstrap emails (ADMIN_EMAILS env var) are promoted to
+//     'owner' once, on first sight with no role yet.
 async function promoteIfBootstrap(user) {
   if (!user || !user.email) return user;
-  if (user.role) return user; // already has a role
+  if (isMasterEmail(user.email) && user.role !== 'owner') {
+    await User.setRole(user.id, 'owner');
+    return { ...user, role: 'owner' };
+  }
+  if (user.role) return user;
   if (!isBootstrapEmail(user.email)) return user;
   await User.setRole(user.id, 'owner');
   return { ...user, role: 'owner' };

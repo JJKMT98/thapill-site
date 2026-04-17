@@ -70,6 +70,7 @@
     <a href="#" data-tab="shipping">Shipping</a>
     <a href="#" data-tab="pricing">Pricing</a>
     <a href="#" data-tab="chat">Chat</a>
+    <a href="#" data-tab="team" id="teamTab" style="display:none;">Team</a>
   </div>
 </nav>
 
@@ -203,6 +204,41 @@
       <div id="roomMessages" style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;min-height:400px;max-height:500px;overflow-y:auto;"></div>
     </div>
   </div>
+
+  <!-- Team (owners only) -->
+  <div class="admin-section" id="sec-team">
+    <div class="section-title">Team &amp; Roles</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;">
+      Give other people scoped access to this admin panel. Each role has a specific set of capabilities.
+      Users must register a normal account first — then assign them a role by email here.
+    </p>
+
+    <table class="admin-table" style="margin-bottom:24px;">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Added</th><th></th></tr></thead>
+      <tbody id="teamRows"></tbody>
+    </table>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;">
+      <div class="section-title" style="font-size:14px;">Assign / update role</div>
+      <form id="teamForm" style="display:grid;grid-template-columns:1fr 220px auto;gap:10px;align-items:end;">
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Email (must already have an account)</label>
+          <input name="email" type="email" required placeholder="ecom-manager@thapill.com" style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Role</label>
+          <select name="role" required style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);"></select>
+        </div>
+        <button type="submit" style="padding:11px 18px;background:var(--electric);color:var(--bg);border:none;border-radius:6px;font-family:inherit;font-weight:600;cursor:pointer;">Save</button>
+      </form>
+      <div id="teamFormHint" style="margin-top:12px;font-size:12px;color:var(--text-dim);"></div>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <div class="section-title" style="font-size:14px;">What each role can do</div>
+      <div id="rolesLegend" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:12px;"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -224,6 +260,7 @@
       if (a.dataset.tab === 'shipping') loadShipping();
       if (a.dataset.tab === 'pricing') loadPricing();
       if (a.dataset.tab === 'chat') loadChatRooms();
+      if (a.dataset.tab === 'team') loadTeam();
     });
   });
 
@@ -506,6 +543,96 @@
       return `<div style="margin-bottom:8px;"><span style="font-family:monospace;font-size:11px;${cls}">${m.sender}</span> <span style="color:var(--text-dim);font-size:10px;">${time}</span><div style="font-size:14px;margin-top:2px;">${m.message}</div></div>`;
     }).join('') || '<div style="color:var(--text-dim);">No messages.</div>';
   }
+
+  // Team tab — only shown to owners
+  let currentRole = null;
+  fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
+    currentRole = (d && d.user && d.user.role) || null;
+    if (currentRole === 'owner') {
+      const t = document.getElementById('teamTab');
+      if (t) t.style.display = '';
+    }
+  }).catch(() => {});
+
+  async function loadTeam() {
+    const [rolesRes, teamRes] = await Promise.all([
+      fetch('/api/admin/team/roles').then(r => r.json()),
+      fetch('/api/admin/team').then(r => r.json()),
+    ]);
+    const roles = rolesRes.roles || [];
+    const team = teamRes.team || [];
+
+    // Populate role select
+    const sel = document.querySelector('#teamForm select[name="role"]');
+    sel.innerHTML = roles.map(r => `<option value="${r.key}">${r.label}</option>`).join('');
+
+    // Render team table
+    const tbody = document.getElementById('teamRows');
+    tbody.innerHTML = team.map(u => {
+      const when = new Date(u.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+      const roleBadge = `<span style="font-family:monospace;color:${u.role==='owner'?'var(--neon-purple)':'var(--electric)'};text-transform:uppercase;font-size:11px;">${u.role.replace('_',' ')}</span>`;
+      return `<tr>
+        <td>${u.first_name} ${u.last_name}</td>
+        <td>${u.email}</td>
+        <td>${roleBadge}</td>
+        <td>${when}</td>
+        <td>
+          <button data-edit-team data-email="${u.email}" data-role="${u.role}" style="background:none;border:1px solid var(--border);color:var(--text-dim);font-size:11px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;">Change role</button>
+          <button data-revoke-team data-id="${u.id}" style="background:none;border:1px solid rgba(255,68,170,0.3);color:var(--neon-pink);font-size:11px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;margin-left:4px;">Revoke</button>
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);">No admins yet — add one below.</td></tr>';
+
+    tbody.querySelectorAll('[data-edit-team]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const f = document.getElementById('teamForm');
+        f.email.value = btn.dataset.email;
+        f.role.value = btn.dataset.role;
+        f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+    tbody.querySelectorAll('[data-revoke-team]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Revoke admin access?')) return;
+        const r = await fetch('/api/admin/team/' + btn.dataset.id, { method: 'DELETE' });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          alert(err.error || 'Could not revoke');
+        }
+        loadTeam();
+      });
+    });
+
+    // Legend of what each role can do
+    const legend = document.getElementById('rolesLegend');
+    legend.innerHTML = roles.map(r =>
+      `<div style="padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+         <div style="font-family:monospace;font-size:12px;color:${r.key==='owner'?'var(--neon-purple)':'var(--electric)'};text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">${r.label}</div>
+         <div style="font-size:12px;color:var(--text-dim);line-height:1.5;">${r.description}</div>
+       </div>`
+    ).join('');
+  }
+
+  document.getElementById('teamForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const res = await fetch('/api/admin/team', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: f.email.value.trim(), role: f.role.value }),
+    });
+    const hint = document.getElementById('teamFormHint');
+    if (res.ok) {
+      hint.style.color = 'var(--electric)';
+      hint.textContent = '✓ Role saved.';
+      f.email.value = '';
+      loadTeam();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      hint.style.color = 'var(--neon-pink)';
+      hint.textContent = err.error || 'Could not save role.';
+    }
+  });
 
   loadStats();
 })();

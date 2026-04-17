@@ -10,7 +10,7 @@ const Product = require('../models/product');
 const Shipping = require('../models/shipping');
 const Pricing = require('../models/pricing');
 const db = require('../models/db');
-const { ROLES, isValidRole } = require('../utils/roles');
+const { ROLES, isValidRole, isMasterEmail } = require('../utils/roles');
 
 // Every /api/admin/* route requires a logged-in user with some role.
 // Individual routes layer a specific capability check on top.
@@ -202,7 +202,12 @@ router.put('/team', requireCap('team:write'), async (req, res) => {
   const target = await User.findByEmail(email.toLowerCase().trim());
   if (!target) return res.status(404).json({ error: 'No user with that email. Ask them to register first, then set their role.' });
 
-  // Guard: never demote the last owner.
+  // Hard guard: master admin is always owner and can't be demoted.
+  if (isMasterEmail(target.email) && role !== 'owner') {
+    return res.status(400).json({ error: 'The master admin cannot be demoted.' });
+  }
+
+  // Soft guard: never demote the last owner by accident.
   if (target.role === 'owner' && role !== 'owner') {
     const owners = (await User.listWithRole()).filter(u => u.role === 'owner');
     if (owners.length <= 1) return res.status(400).json({ error: 'Cannot demote the last owner' });
@@ -217,6 +222,7 @@ router.delete('/team/:id', requireCap('team:write'), async (req, res) => {
   const target = await User.findById(id);
   if (!target) return res.status(404).json({ error: 'user not found' });
   if (target.id === req.user.id) return res.status(400).json({ error: "Can't revoke your own access — ask another owner." });
+  if (isMasterEmail(target.email)) return res.status(400).json({ error: 'The master admin cannot be revoked.' });
 
   if (target.role === 'owner') {
     const owners = (await User.listWithRole()).filter(u => u.role === 'owner');
