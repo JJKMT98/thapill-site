@@ -150,6 +150,61 @@
   /* Coming soon stub for other tabs */
   .tab-stub { text-align: center; padding: 80px 30px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
 
+  /* Shop tab */
+  .shop-intro { margin-bottom: 28px; }
+  .shop-intro h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .shop-intro p { color: var(--text-dim); font-size: 14px; }
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .shop-card {
+    position: relative; background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 26px 24px; display: flex; flex-direction: column; gap: 12px;
+    transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+    overflow: hidden;
+  }
+  .shop-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,255,136,0.35), transparent); opacity: 0; transition: opacity 0.3s; }
+  .shop-card:hover::before { opacity: 1; }
+  .shop-card:hover { transform: translateY(-4px); border-color: rgba(0,255,136,0.25); box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
+  .shop-card.featured { border-color: rgba(0,255,136,0.3); box-shadow: 0 0 30px rgba(0,255,136,0.08); }
+  .shop-card-popular {
+    position: absolute; top: 14px; right: 14px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--bg); background: var(--electric); padding: 4px 9px; border-radius: 4px; font-weight: 700;
+  }
+  .shop-card-thumb {
+    position: relative; width: 100%; height: 140px;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at center, rgba(0,255,136,0.1) 0%, transparent 65%);
+    border-radius: 12px; margin-bottom: 4px;
+  }
+  .shop-card-thumb img { max-height: 130px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5)); }
+  .shop-card-thumb .wish-btn {
+    position: absolute; top: 10px; right: 10px;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    background: rgba(3,3,6,0.7); border: 1px solid var(--border); border-radius: 50%;
+    cursor: pointer; transition: border-color 0.2s, transform 0.2s, color 0.2s;
+    color: var(--text-dim); font-size: 18px;
+  }
+  .shop-card-thumb .wish-btn:hover { transform: scale(1.1); border-color: var(--neon-pink); color: var(--neon-pink); }
+  .shop-card-thumb .wish-btn.saved { color: var(--neon-pink); border-color: var(--neon-pink); background: rgba(255,68,170,0.1); }
+  .shop-card-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); }
+  .shop-card-name { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .shop-card-desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; min-height: 38px; }
+  .shop-card-price { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; color: var(--electric); margin-top: 4px; }
+  .shop-card-price .suffix { font-size: 13px; color: var(--text-dim); font-weight: 400; margin-left: 4px; }
+  .shop-card-save { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px; color: var(--neon-purple); }
+  .shop-card-btn {
+    margin-top: auto;
+    padding: 13px 20px; border-radius: 10px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, background 0.2s, color 0.2s;
+  }
+  .shop-card-btn.primary { background: var(--electric); color: var(--bg); border-color: var(--electric); }
+  .shop-card-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 18px rgba(0,255,136,0.25); }
+  .shop-card-btn.primary:hover { box-shadow: 0 0 28px rgba(0,255,136,0.45); }
+  .shop-card-btn.added { background: var(--electric); color: var(--bg); border-color: var(--electric); }
+
   @media (max-width: 900px) {
     .dash-hero-inner { grid-template-columns: 1fr; gap: 24px; }
     .hero-bottle-wrap { width: 220px; height: 260px; margin: 0 auto; }
@@ -253,9 +308,15 @@
     </div>
   </section>
 
-  <!-- SHOP (stub) -->
+  <!-- SHOP -->
   <section class="tab-panel" id="tab-shop">
-    <div class="tab-stub">// shop // loading...</div>
+    <div class="shop-intro">
+      <h2>shop the stack.</h2>
+      <p>your daily lock-in, delivered. pick your plan and full send.</p>
+    </div>
+    <div class="shop-grid" id="shopGrid">
+      <div class="tab-stub" id="shopLoading">// shop // loading...</div>
+    </div>
   </section>
 
   <!-- ORDERS (stub) -->
@@ -283,6 +344,9 @@
 <script>
 (function() {
   let DASH = null;
+  let PRODUCTS = null;
+  let WISH_IDS = new Set();
+  const loaded = { shop: false };
 
   async function load() {
     try {
@@ -388,10 +452,139 @@
     document.querySelectorAll('.dash-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
     window.scrollTo({ top: document.querySelector('.dash-tabs').offsetTop - 60, behavior: 'smooth' });
+    if (name === 'shop' && !loaded.shop) { loadShop(); loaded.shop = true; }
   }
   document.querySelectorAll('.dash-tab').forEach(t => {
     t.addEventListener('click', () => switchTab(t.dataset.tab));
   });
+
+  // ── Shop ──────────────────────────────────────────────────
+  const CARD_META = {
+    'try-it':       { label: 'Try It',       featured: false, desc: '30 capsules. one month. no commitment — just vibe check.',      btn: 'Buy Once' },
+    'lock-in':      { label: 'Lock In',      featured: true,  desc: '30 capsules every month. cancel whenever. earn points each drop.', btn: 'Lock In' },
+    '3-month-bulk': { label: '3-Month Bulk', featured: false, desc: '90 capsules, one payment, full send for a whole quarter.',         btn: 'Buy 3 Months' },
+  };
+  const ORDER = ['try-it', 'lock-in', '3-month-bulk'];
+
+  function formatResolved(rp) {
+    if (!rp) return '';
+    if (rp.is_override) {
+      const d = (rp.currency === 'JPY' || rp.currency === 'KRW') ? 0 : 2;
+      const v = d === 0 ? Math.round(rp.amount_minor).toLocaleString() : (rp.amount_minor / 100).toFixed(2);
+      const sym = { USD:'$', EUR:'€', GBP:'£', AED:'AED ', JPY:'¥', CNY:'¥', KRW:'₩', CAD:'C$', AUD:'A$', CHF:'CHF ', SGD:'S$', SAR:'SAR ', INR:'₹' };
+      return (sym[rp.currency] || rp.currency + ' ') + v;
+    }
+    if (window.Locale && window.Locale.price) return window.Locale.price(rp.amount_minor);
+    return '£' + (rp.amount_minor / 100).toFixed(2);
+  }
+
+  async function loadShop() {
+    const grid = document.getElementById('shopGrid');
+    try {
+      const [prodRes, wishRes] = await Promise.all([
+        fetch('/api/products'),
+        fetch('/api/wishlist'),
+      ]);
+      PRODUCTS = await prodRes.json();
+      if (wishRes.ok) {
+        const w = await wishRes.json();
+        WISH_IDS = new Set((w.items || []).map(i => i.product_id));
+      }
+      renderShop();
+    } catch (err) {
+      grid.innerHTML = '<div class="empty-state">Failed to load products. Try again in a sec.</div>';
+    }
+  }
+
+  function renderShop() {
+    const grid = document.getElementById('shopGrid');
+    const byS = {};
+    (PRODUCTS || []).forEach(p => { byS[p.slug] = p; });
+    const sorted = ORDER.map(s => byS[s]).filter(Boolean).concat((PRODUCTS || []).filter(p => !ORDER.includes(p.slug)));
+    if (!sorted.length) { grid.innerHTML = '<div class="empty-state">No products available right now.</div>'; return; }
+
+    grid.innerHTML = sorted.map((p) => {
+      const meta = CARD_META[p.slug] || { label: p.name, featured: false, desc: p.description || '', btn: 'Add to Cart' };
+      const price = formatResolved(p.resolved_price);
+      const suffix = p.slug === 'lock-in' ? '<span class="suffix">/mo</span>' : '';
+      const perMonth = (p.slug === '3-month-bulk' && p.resolved_price)
+        ? (() => {
+            const unit = p.resolved_price.amount_minor / 3;
+            const perStr = p.resolved_price.is_override
+              ? formatResolved({ ...p.resolved_price, amount_minor: unit })
+              : (window.Locale && window.Locale.price ? window.Locale.price(unit) : '£' + (unit / 100).toFixed(2));
+            return '<div class="shop-card-save">' + perStr + '/month</div>';
+          })()
+        : (p.compare_at_pence && p.price_pence && p.compare_at_pence > p.price_pence)
+          ? '<div class="shop-card-save">SAVE ' + Math.round((1 - p.price_pence / p.compare_at_pence) * 100) + '%</div>'
+          : '';
+      const saved = WISH_IDS.has(p.id) ? 'saved' : '';
+      const img = p.image_url || '/thapill-assets/hero-bottle.png';
+      return `
+        <div class="shop-card ${meta.featured ? 'featured' : ''}" data-slug="${p.slug}" data-pid="${p.id}">
+          ${meta.featured ? '<span class="shop-card-popular">Most Popular</span>' : ''}
+          <div class="shop-card-thumb">
+            <img src="${img}" alt="${p.name}" onerror="this.onerror=null;this.src='/thapill-assets/hero-bottle.png'">
+            <button class="wish-btn ${saved}" data-wish="${p.id}" aria-label="Add to wishlist">${WISH_IDS.has(p.id) ? '♥' : '♡'}</button>
+          </div>
+          <div class="shop-card-label">${meta.label}</div>
+          <div class="shop-card-name">${p.name}</div>
+          <div class="shop-card-desc">${meta.desc}</div>
+          <div class="shop-card-price">${price}${suffix}</div>
+          ${perMonth}
+          <button class="shop-card-btn ${meta.featured ? 'primary' : ''}" data-add="${p.slug}">${meta.btn}</button>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('[data-add]').forEach(btn => {
+      btn.addEventListener('click', () => addToCart(btn));
+    });
+    grid.querySelectorAll('[data-wish]').forEach(btn => {
+      btn.addEventListener('click', () => toggleWish(btn));
+    });
+  }
+
+  async function addToCart(btn) {
+    const slug = btn.dataset.add;
+    const orig = btn.textContent;
+    btn.disabled = true;
+    try {
+      if (window.thaPillCart && window.thaPillCart.add) {
+        await window.thaPillCart.add({ slug });
+      } else {
+        await fetch('/api/cart/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug }) });
+      }
+      btn.classList.add('added');
+      btn.textContent = 'Added!';
+      if (window.Pilly && window.Pilly.popUpAt) window.Pilly.popUpAt(btn, { variant: 'surprised', size: 42 });
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('added'); btn.disabled = false; }, 1600);
+    } catch {
+      btn.textContent = 'Try again';
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1600);
+    }
+  }
+
+  async function toggleWish(btn) {
+    const pid = Number(btn.dataset.wish);
+    const saved = btn.classList.contains('saved');
+    try {
+      if (saved) {
+        await fetch('/api/wishlist/' + pid, { method: 'DELETE' });
+        WISH_IDS.delete(pid);
+        btn.classList.remove('saved');
+        btn.textContent = '♡';
+      } else {
+        await fetch('/api/wishlist/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product_id: pid }) });
+        WISH_IDS.add(pid);
+        btn.classList.add('saved');
+        btn.textContent = '♥';
+        if (window.Pilly && window.Pilly.popUpAt) window.Pilly.popUpAt(btn, { variant: 'happy', size: 42 });
+      }
+      const wEl = document.getElementById('statWishlist');
+      if (wEl) wEl.textContent = WISH_IDS.size;
+    } catch {}
+  }
 
   // Count-up
   function animateCount(id, target) {
