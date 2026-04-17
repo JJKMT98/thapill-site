@@ -85,12 +85,27 @@ app.get('/tracking', (_req, res) => res.sendFile(path.join(__dirname, 'public', 
 app.get('/tracking/:orderNumber', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'tracking.html')));
 app.get('/order/success/:orderNumber', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'order-success.html')));
 
-app.get('/api/products', async (_req, res) => {
+const { ensureSession } = require('./src/middleware/session');
+
+app.get('/api/products', ensureSession, async (req, res) => {
   const Product = require('./src/models/product');
-  res.json(await Product.listActive());
+  const Pricing = require('./src/models/pricing');
+  const country = ((req.query.country || req.geo?.country || '') + '').toUpperCase();
+  const rows = await Product.listActive();
+  const enriched = await Promise.all(rows.map(async (p) => {
+    const override = await Pricing.resolve(p.id, country);
+    return {
+      ...p,
+      // Price the buyer actually pays. Either the override in its native
+      // currency, or the base GBP price (frontend FX-converts for display).
+      resolved_price: override
+        ? { amount_minor: override.amount_minor, currency: override.currency, country: override.country, is_override: true }
+        : { amount_minor: p.price_pence,        currency: 'GBP',             country: country || null, is_override: false },
+    };
+  }));
+  res.json(enriched);
 });
 
-const { ensureSession } = require('./src/middleware/session');
 app.get('/api/geo', ensureSession, (req, res) => {
   res.json({
     country: req.geo?.country || null,

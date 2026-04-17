@@ -8,6 +8,7 @@ const Shipment = require('../models/shipment');
 const Chat = require('../models/chat');
 const Product = require('../models/product');
 const Shipping = require('../models/shipping');
+const Pricing = require('../models/pricing');
 const db = require('../models/db');
 
 router.use(requireAuth, requireAdmin);
@@ -143,6 +144,43 @@ router.delete('/shipping/:country', async (req, res) => {
   const country = req.params.country.toUpperCase();
   if (country === 'DEFAULT') return res.status(400).json({ error: 'Cannot delete DEFAULT rule' });
   await Shipping.remove(country);
+  res.json({ ok: true });
+});
+
+// ── Per-country product pricing overrides ──────────────────
+router.get('/pricing', async (_req, res) => {
+  res.json({ overrides: await Pricing.listAll() });
+});
+
+router.get('/pricing/:productId', async (req, res) => {
+  const productId = Number(req.params.productId);
+  if (!productId) return res.status(400).json({ error: 'invalid product_id' });
+  res.json({ overrides: await Pricing.findByProduct(productId) });
+});
+
+router.put('/pricing/:productId/:country', async (req, res) => {
+  const productId = Number(req.params.productId);
+  const country = req.params.country.toUpperCase();
+  const { amount_minor, currency } = req.body || {};
+  if (!productId) return res.status(400).json({ error: 'invalid product_id' });
+  if (!country || (country !== 'DEFAULT' && country.length !== 2)) {
+    return res.status(400).json({ error: 'country must be 2-letter code or DEFAULT' });
+  }
+  if (amount_minor == null || Number(amount_minor) < 0) return res.status(400).json({ error: 'amount_minor required' });
+  if (!currency || currency.length !== 3) return res.status(400).json({ error: 'currency must be a 3-letter code (e.g. USD)' });
+
+  const product = await Product.findById(productId);
+  if (!product) return res.status(404).json({ error: 'product not found' });
+
+  await Pricing.upsert({ product_id: productId, country, amount_minor: Number(amount_minor), currency });
+  res.json({ ok: true, override: await Pricing.findOne(productId, country) });
+});
+
+router.delete('/pricing/:productId/:country', async (req, res) => {
+  const productId = Number(req.params.productId);
+  const country = req.params.country.toUpperCase();
+  if (!productId) return res.status(400).json({ error: 'invalid product_id' });
+  await Pricing.remove(productId, country);
   res.json({ ok: true });
 });
 

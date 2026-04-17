@@ -8,6 +8,7 @@ const Order = require('../models/order');
 const Address = require('../models/address');
 const Points = require('../models/points');
 const Shipping = require('../models/shipping');
+const Pricing = require('../models/pricing');
 const db = require('../models/db');
 const { generateOrderNumber } = require('../utils/order-number');
 
@@ -38,7 +39,34 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
       });
     }
 
-    const subtotal = items.reduce((s, i) => s + i.price_pence * i.quantity, 0);
+    // Resolve per-country price overrides. Each line stores the actual
+    // unit amount + currency used (override native currency, or base GBP
+    // pence when no override applies).
+    const resolvedItems = await Promise.all(items.map(async (item) => {
+      const override = await Pricing.resolve(item.product_id, destCountry);
+      if (override) {
+        return {
+          ...item,
+          unit_amount: override.amount_minor,
+          unit_currency: override.currency,
+          is_override: true,
+        };
+      }
+      return {
+        ...item,
+        unit_amount: item.price_pence,
+        unit_currency: 'GBP',
+        is_override: false,
+      };
+    }));
+
+    // Order math is kept in pence (GBP-equivalent minor units) for the
+    // backend. When an override sits in a non-GBP currency, we still
+    // store its raw amount in unit_price_pence so admin reports are
+    // consistent; Stripe integration in a future commit will pass the
+    // real currency to Stripe. Mixing overrides + base GBP in one order
+    // is discouraged — the frontend always shows one country's prices.
+    const subtotal = resolvedItems.reduce((s, i) => s + i.unit_amount * i.quantity, 0);
     const shippingPence = shipping.price_pence || 0;
     const orderNumber = await generateOrderNumber();
 
@@ -74,13 +102,13 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
       notes: req.user ? null : JSON.stringify(address || {}),
     });
 
-    for (const item of items) {
+    for (const item of resolvedItems) {
       await Order.addItem({
         order_id: order.id,
         product_id: item.product_id,
         quantity: item.quantity,
-        unit_price_pence: item.price_pence,
-        total_pence: item.price_pence * item.quantity,
+        unit_price_pence: item.unit_amount,
+        total_pence: item.unit_amount * item.quantity,
       });
     }
 
