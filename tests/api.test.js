@@ -37,7 +37,7 @@ function extractCookie(setCookie) {
 async function resetDb() {
   await db.query(`
     DROP TABLE IF EXISTS chat_messages, points_ledger, referrals, order_items, shipments, orders,
-      cart_items, addresses, sessions, products, users CASCADE;
+      cart_items, addresses, sessions, product_prices, shipping_rules, products, users CASCADE;
   `);
 }
 

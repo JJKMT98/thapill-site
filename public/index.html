@@ -75,7 +75,7 @@
     </h1>
     <p class="hero-sub reveal reveal-delay-3">One capsule. Six ingredients. Zero BS.<br>The daily nootropic for people who build things and refuse to coast.</p>
     <div class="hero-ctas reveal reveal-delay-4">
-      <a href="#pricing" class="mag-btn">Lock In &mdash; &pound;25/mo</a>
+      <a href="#pricing" class="mag-btn" data-hero-cta data-btn-template="Lock In — {price}/mo">Lock In &mdash; &pound;25/mo</a>
       <a href="#formula" class="mag-btn mag-btn-outline">See What's Inside</a>
     </div>
     <div class="float-badges reveal reveal-delay-5">
@@ -165,9 +165,9 @@
   <span class="section-tag reveal">// Choose Your Play</span>
   <h2 class="section-title reveal reveal-delay-1">Lock in. Show up. Repeat.</h2>
   <div class="pricing-grid">
-    <div class="price-card reveal reveal-delay-1"><div class="price-label">Try It</div><div class="price-amount">&pound;40</div><div class="price-per">One-time purchase</div><div style="height:30px"></div><ul class="price-features"><li>30 capsules (1 month)</li><li>No commitment</li><li>Free UK shipping</li></ul><button class="price-btn secondary" data-add-slug="try-it" data-default="Buy Once" data-hover="Add to Cart">Buy Once</button></div>
-    <div class="price-card featured reveal reveal-delay-2"><div class="price-popular">Most Popular</div><div class="price-label">Lock In</div><div class="price-amount">&pound;25<span>/mo</span></div><div class="price-per">Monthly subscription</div><div class="price-save">SAVE 37%</div><ul class="price-features"><li>30 capsules every month</li><li>Cancel anytime</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn primary" data-add-slug="lock-in" data-default="Lock In — £25/mo" data-hover="Add to Cart">Lock In &mdash; &pound;25/mo</button></div>
-    <div class="price-card reveal reveal-delay-3"><div class="price-label">3-Month Bulk</div><div class="price-amount">&pound;65</div><div class="price-per">&pound;21.67/month</div><div class="price-save">SAVE 46%</div><ul class="price-features"><li>90 capsules (3 months)</li><li>One payment</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn secondary" data-add-slug="3-month-bulk" data-default="Buy 3 Months" data-hover="Add to Cart">Buy 3 Months</button></div>
+    <div class="price-card reveal reveal-delay-1" data-card="try-it"><div class="price-label">Try It</div><div class="price-amount" data-price-main>&pound;40</div><div class="price-per">One-time purchase</div><div style="height:30px"></div><ul class="price-features"><li>30 capsules (1 month)</li><li>No commitment</li><li>Free UK shipping</li></ul><button class="price-btn secondary" data-add-slug="try-it" data-default="Buy Once" data-hover="Add to Cart" data-btn-template="Buy Once">Buy Once</button></div>
+    <div class="price-card featured reveal reveal-delay-2" data-card="lock-in"><div class="price-popular">Most Popular</div><div class="price-label">Lock In</div><div class="price-amount" data-price-main>&pound;25<span data-price-suffix>/mo</span></div><div class="price-per">Monthly subscription</div><div class="price-save">SAVE 37%</div><ul class="price-features"><li>30 capsules every month</li><li>Cancel anytime</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn primary" data-add-slug="lock-in" data-default="Lock In — £25/mo" data-hover="Add to Cart" data-btn-template="Lock In — {price}/mo">Lock In &mdash; &pound;25/mo</button></div>
+    <div class="price-card reveal reveal-delay-3" data-card="3-month-bulk"><div class="price-label">3-Month Bulk</div><div class="price-amount" data-price-main>&pound;65</div><div class="price-per" data-price-per-month>&pound;21.67/month</div><div class="price-save">SAVE 46%</div><ul class="price-features"><li>90 capsules (3 months)</li><li>One payment</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn secondary" data-add-slug="3-month-bulk" data-default="Buy 3 Months" data-hover="Add to Cart" data-btn-template="Buy 3 Months">Buy 3 Months</button></div>
   </div>
 </section>
 
@@ -190,7 +190,7 @@
   <div class="bg-glow"></div>
   <h2 class="reveal">Stop thinking about it.<br><span class="glow glitch" data-text="Lock in.">Lock in.</span></h2>
   <p class="reveal reveal-delay-1">One capsule a day. That's the whole routine.<br>Join the people who stopped settling for random stacks and started taking this seriously.</p>
-  <a href="#pricing" class="mag-btn reveal reveal-delay-2">Get Thapill &mdash; &pound;25/mo</a>
+  <a href="#pricing" class="mag-btn reveal reveal-delay-2" data-hero-cta data-btn-template="Get thaPill — {price}/mo">Get Thapill &mdash; &pound;25/mo</a>
 </section>
 
 <div class="disclaimer">This product is a food supplement and should not be used as a substitute for a varied diet. Do not exceed the recommended daily intake. Keep out of reach of children. Consult your doctor before use if pregnant, nursing, or on medication. Not intended to diagnose, treat, cure, or prevent any disease.</div>
@@ -263,6 +263,89 @@ fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(data => {
     });
     obs.observe(badge, { childList: true, characterData: true, subtree: true });
   }
+})();
+
+// Live pricing — fetches /api/products (which resolves per-country
+// overrides) and re-renders the pricing cards + hero CTAs. Re-runs
+// whenever the user flips language/currency in the top-corner switcher.
+(function () {
+  let cachedProducts = null;
+
+  async function fetchProducts() {
+    try {
+      const res = await fetch('/api/products');
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { return null; }
+  }
+
+  function formatResolved(rp) {
+    // If it's an override in a non-GBP currency, render it natively.
+    // Otherwise it's the base GBP pence price — let Locale.price convert
+    // to whatever currency the user picked (or leave as GBP).
+    if (!rp) return null;
+    if (rp.is_override && rp.currency !== 'GBP') {
+      const zeroDec = { JPY: 1, KRW: 1, INR: 1 };
+      const d = zeroDec[rp.currency] ? 0 : 2;
+      const v = d === 0 ? Math.round(rp.amount_minor).toLocaleString()
+                        : (rp.amount_minor / 100).toFixed(2);
+      const sym = { USD:'$', EUR:'€', GBP:'£', AED:'AED ', JPY:'¥', CNY:'¥', KRW:'₩',
+                    CAD:'C$', AUD:'A$', CHF:'CHF ', SGD:'S$', SAR:'SAR ', INR:'₹' };
+      return (sym[rp.currency] || rp.currency + ' ') + v;
+    }
+    // Base GBP → run through Locale.price if available (handles FX + user currency)
+    if (window.Locale && window.Locale.price) return window.Locale.price(rp.amount_minor);
+    return '£' + (rp.amount_minor / 100).toFixed(2);
+  }
+
+  function applyPrices(products) {
+    if (!products) return;
+    products.forEach((p) => {
+      const card = document.querySelector('[data-card="' + p.slug + '"]');
+      const priceStr = formatResolved(p.resolved_price);
+      if (!priceStr) return;
+      if (card) {
+        const main = card.querySelector('[data-price-main]');
+        if (main) {
+          const suffix = main.querySelector('[data-price-suffix]');
+          main.textContent = priceStr;
+          if (suffix) { const s = suffix.cloneNode(true); main.appendChild(s); }
+        }
+        // 3-month bulk: show per-month breakdown (subtotal / 3)
+        const perMonth = card.querySelector('[data-price-per-month]');
+        if (perMonth && p.slug === '3-month-bulk' && p.resolved_price) {
+          const unit = p.resolved_price.amount_minor / 3;
+          const perStr = (p.resolved_price.is_override && p.resolved_price.currency !== 'GBP')
+            ? formatResolved({ ...p.resolved_price, amount_minor: unit })
+            : (window.Locale && window.Locale.price ? window.Locale.price(unit) : '£' + (unit / 100).toFixed(2));
+          perMonth.textContent = perStr + '/month';
+        }
+        // Buttons on the card with {price} template
+        card.querySelectorAll('[data-btn-template]').forEach((b) => {
+          b.dataset.default = b.dataset.btnTemplate.replace('{price}', priceStr);
+          if (!b.matches(':hover')) b.textContent = b.dataset.default;
+        });
+      }
+    });
+
+    // Hero / final CTAs — they reference the 'lock-in' price
+    const lockIn = products.find(p => p.slug === 'lock-in');
+    if (lockIn) {
+      const lockPrice = formatResolved(lockIn.resolved_price);
+      document.querySelectorAll('[data-hero-cta][data-btn-template]').forEach((el) => {
+        el.textContent = el.dataset.btnTemplate.replace('{price}', lockPrice);
+      });
+    }
+  }
+
+  async function refreshPrices() {
+    if (!cachedProducts) cachedProducts = await fetchProducts();
+    applyPrices(cachedProducts);
+  }
+
+  document.addEventListener('locale:ready',  refreshPrices);
+  document.addEventListener('locale:change', refreshPrices);
+  refreshPrices();
 })();
 </script>
 </body>
