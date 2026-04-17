@@ -182,6 +182,16 @@ CREATE TABLE IF NOT EXISTS shipping_rules (
 );
 CREATE INDEX IF NOT EXISTS idx_shipping_country ON shipping_rules(country);
 
+-- Wishlist: customers save products they want to come back to.
+CREATE TABLE IF NOT EXISTS wishlist_items (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, product_id)
+);
+CREATE INDEX IF NOT EXISTS idx_wishlist_user ON wishlist_items(user_id);
+
 -- Per-country product price overrides. When a row exists for
 -- (product_id, country), the site shows that fixed price in the given
 -- currency instead of converting from the base GBP price.
