@@ -205,6 +205,55 @@
   .shop-card-btn.primary:hover { box-shadow: 0 0 28px rgba(0,255,136,0.45); }
   .shop-card-btn.added { background: var(--electric); color: var(--bg); border-color: var(--electric); }
 
+  /* Orders tab */
+  .orders-head { margin-bottom: 24px; }
+  .orders-head h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .orders-head p { color: var(--text-dim); font-size: 14px; }
+  .orders-list { display: flex; flex-direction: column; gap: 16px; }
+  .order-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px 24px; display: grid; grid-template-columns: 1fr auto;
+    gap: 18px; align-items: start; transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  .order-card:hover { border-color: rgba(0,255,136,0.2); box-shadow: 0 6px 24px rgba(0,0,0,0.3); }
+  .order-card-main { min-width: 0; }
+  .order-card-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+  .order-card-num { font-family: 'JetBrains Mono', monospace; color: var(--electric); font-size: 14px; font-weight: 600; }
+  .order-card-date { font-size: 12px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .status-badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 20px; }
+  .status-pending { color: var(--neon-blue); background: rgba(68,136,255,0.12); }
+  .status-paid, .status-processing { color: #ffaa00; background: rgba(255,170,0,0.1); }
+  .status-shipped { color: var(--electric-bright); background: rgba(0,255,136,0.1); }
+  .status-delivered { color: var(--electric); background: rgba(0,255,136,0.15); }
+  .status-cancelled, .status-refunded { color: var(--neon-pink); background: rgba(255,68,170,0.1); }
+  .order-card-items { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+  .order-thumb {
+    width: 44px; height: 44px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+  }
+  .order-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .order-item-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .order-item-label { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+  .order-item-qty { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-dim); }
+  .order-card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; min-width: 160px; }
+  .order-card-total { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: var(--text); }
+  .order-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .order-btn {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 500;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    transition: border-color 0.2s, color 0.2s, transform 0.2s;
+  }
+  .order-btn:hover { border-color: var(--electric); color: var(--electric); transform: translateY(-1px); }
+  .order-btn.ghost:hover { border-color: var(--neon-purple); color: var(--neon-purple); }
+
+  @media (max-width: 600px) {
+    .order-card { grid-template-columns: 1fr; }
+    .order-card-side { align-items: flex-start; }
+    .order-btns { justify-content: flex-start; }
+  }
+
   @media (max-width: 900px) {
     .dash-hero-inner { grid-template-columns: 1fr; gap: 24px; }
     .hero-bottle-wrap { width: 220px; height: 260px; margin: 0 auto; }
@@ -319,9 +368,13 @@
     </div>
   </section>
 
-  <!-- ORDERS (stub) -->
+  <!-- ORDERS -->
   <section class="tab-panel" id="tab-orders">
-    <div class="tab-stub">// orders // loading...</div>
+    <div class="orders-head">
+      <h2>your orders.</h2>
+      <p>every drop, every track, every reorder — all here.</p>
+    </div>
+    <div id="ordersContainer"></div>
   </section>
 
   <!-- WISHLIST (stub) -->
@@ -346,7 +399,7 @@
   let DASH = null;
   let PRODUCTS = null;
   let WISH_IDS = new Set();
-  const loaded = { shop: false };
+  const loaded = { shop: false, orders: false };
 
   async function load() {
     try {
@@ -453,6 +506,7 @@
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
     window.scrollTo({ top: document.querySelector('.dash-tabs').offsetTop - 60, behavior: 'smooth' });
     if (name === 'shop' && !loaded.shop) { loadShop(); loaded.shop = true; }
+    if (name === 'orders' && !loaded.orders) { renderOrders(); loaded.orders = true; }
   }
   document.querySelectorAll('.dash-tab').forEach(t => {
     t.addEventListener('click', () => switchTab(t.dataset.tab));
@@ -563,6 +617,90 @@
       btn.textContent = 'Try again';
       setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1600);
     }
+  }
+
+  // ── Orders ────────────────────────────────────────────────
+  function fmtGBP(pence) {
+    if (window.Locale && window.Locale.price) return window.Locale.price(pence);
+    return '£' + (pence / 100).toFixed(2);
+  }
+
+  function renderOrders() {
+    const el = document.getElementById('ordersContainer');
+    const orders = (DASH && DASH.recentOrders) || [];
+    if (!orders.length) {
+      el.innerHTML = `
+        <div class="empty-state" id="ordersEmpty">
+          <div id="ordersEmptyPilly"></div>
+          <div style="margin-top:14px;font-size:15px;color:var(--text);">no orders yet.</div>
+          <div style="margin-top:6px;">your aura's ready, just not locked in.</div>
+          <button class="quick-btn primary" style="margin-top:20px;" id="ordersEmptyCta">Shop Now</button>
+        </div>`;
+      const pillyHolder = document.getElementById('ordersEmptyPilly');
+      if (window.Pilly && window.Pilly.sleepyAt && pillyHolder) window.Pilly.sleepyAt(pillyHolder, { size: 160 });
+      const cta = document.getElementById('ordersEmptyCta');
+      if (cta) cta.addEventListener('click', () => switchTab('shop'));
+      return;
+    }
+
+    el.innerHTML = '<div class="orders-list">' + orders.map(o => {
+      const date = new Date(o.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const items = (o.items || []).slice(0, 3).map(it => {
+        const img = it.image_url || '/thapill-assets/hero-bottle.png';
+        return `
+          <div class="order-item-line">
+            <div class="order-thumb"><img src="${img}" alt="${it.name}" onerror="this.onerror=null;this.src='/thapill-assets/hero-bottle.png'"></div>
+            <span class="order-item-label">${it.name}</span>
+            <span class="order-item-qty">× ${it.quantity}</span>
+          </div>`;
+      }).join('');
+      const more = (o.items && o.items.length > 3) ? `<span class="order-item-qty">+${o.items.length - 3} more</span>` : '';
+      return `
+        <div class="order-card" data-order-id="${o.id}">
+          <div class="order-card-main">
+            <div class="order-card-top">
+              <span class="order-card-num">${o.order_number}</span>
+              <span class="status-badge status-${o.status}">${o.status}</span>
+              <span class="order-card-date">${date}</span>
+            </div>
+            <div class="order-card-items">${items}${more}</div>
+          </div>
+          <div class="order-card-side">
+            <div class="order-card-total">${fmtGBP(o.total_pence)}</div>
+            <div class="order-btns">
+              <a class="order-btn" href="/tracking/${o.order_number}">Track →</a>
+              <button class="order-btn ghost" data-reorder="${o.id}">Reorder</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('') + '</div>';
+
+    el.querySelectorAll('[data-reorder]').forEach(btn => {
+      btn.addEventListener('click', () => reorder(Number(btn.dataset.reorder), btn));
+    });
+  }
+
+  async function reorder(orderId, btn) {
+    const order = (DASH.recentOrders || []).find(o => o.id === orderId);
+    if (!order) return;
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = 'Adding...';
+    try {
+      for (const it of (order.items || [])) {
+        if (!it.slug) continue;
+        for (let i = 0; i < (it.quantity || 1); i++) {
+          await fetch('/api/cart/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: it.slug }) });
+        }
+      }
+      btn.textContent = 'Added ✓';
+      if (window.thaPillCart && window.thaPillCart.refresh) await window.thaPillCart.refresh();
+      if (window.thaPillCart && window.thaPillCart.open) window.thaPillCart.open();
+      if (window.Pilly && window.Pilly.popUpAt) window.Pilly.popUpAt(btn, { variant: 'surprised', size: 42 });
+    } catch {
+      btn.textContent = 'Try again';
+    }
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1800);
   }
 
   async function toggleWish(btn) {
