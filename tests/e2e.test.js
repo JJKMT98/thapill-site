@@ -586,4 +586,171 @@ describe('E2E: Full Customer Journey', () => {
     const usersC = await req('GET', '/api/admin/users?status=lead', null, adminCookie);
     assert.ok(!usersC.body.users.find(u => u.email === 'lead@test.com'), 'should no longer appear in leads');
   });
+
+  // ── 22. Per-country pricing overrides ───────────────────────
+  let lockInId;
+
+  test('resolve base price when no override exists (FR visitor)', async () => {
+    const res = await req('GET', '/api/products?country=FR');
+    assert.strictEqual(res.status, 200);
+    const lockIn = res.body.find(p => p.slug === 'lock-in');
+    lockInId = lockIn.id;
+    assert.ok(lockIn.resolved_price);
+    assert.strictEqual(lockIn.resolved_price.currency, 'GBP');
+    assert.strictEqual(lockIn.resolved_price.is_override, false);
+    assert.strictEqual(lockIn.resolved_price.amount_minor, 2500);
+  });
+
+  test('non-admin cannot create a pricing override', async () => {
+    const res = await req(
+      'PUT',
+      '/api/admin/pricing/' + lockInId + '/US',
+      { amount_minor: 3000, currency: 'USD' },
+      javedCookie
+    );
+    assert.strictEqual(res.status, 403);
+  });
+
+  test('admin creates a US pricing override (3000 USD minor)', async () => {
+    const res = await req(
+      'PUT',
+      '/api/admin/pricing/' + lockInId + '/US',
+      { amount_minor: 3000, currency: 'USD' },
+      adminCookie
+    );
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.body.ok);
+    assert.strictEqual(res.body.override.amount_minor, 3000);
+    assert.strictEqual(res.body.override.currency, 'USD');
+    assert.strictEqual(res.body.override.country, 'US');
+  });
+
+  test('GET /api/products?country=US returns override', async () => {
+    const res = await req('GET', '/api/products?country=US');
+    const lockIn = res.body.find(p => p.slug === 'lock-in');
+    assert.strictEqual(lockIn.resolved_price.currency, 'USD');
+    assert.strictEqual(lockIn.resolved_price.amount_minor, 3000);
+    assert.strictEqual(lockIn.resolved_price.is_override, true);
+  });
+
+  test('GET /api/products?country=FR still falls back to base (only US overridden)', async () => {
+    const res = await req('GET', '/api/products?country=FR');
+    const lockIn = res.body.find(p => p.slug === 'lock-in');
+    assert.strictEqual(lockIn.resolved_price.currency, 'GBP');
+    assert.strictEqual(lockIn.resolved_price.is_override, false);
+  });
+
+  test('DEFAULT override applies when no country-specific row matches', async () => {
+    const put = await req(
+      'PUT',
+      '/api/admin/pricing/' + lockInId + '/DEFAULT',
+      { amount_minor: 2800, currency: 'EUR' },
+      adminCookie
+    );
+    assert.strictEqual(put.status, 200);
+
+    const fr = await req('GET', '/api/products?country=FR');
+    const lockIn = fr.body.find(p => p.slug === 'lock-in');
+    assert.strictEqual(lockIn.resolved_price.currency, 'EUR');
+    assert.strictEqual(lockIn.resolved_price.amount_minor, 2800);
+    assert.strictEqual(lockIn.resolved_price.is_override, true);
+
+    // US still uses its country-specific override (not DEFAULT)
+    const us = await req('GET', '/api/products?country=US');
+    const lockInUS = us.body.find(p => p.slug === 'lock-in');
+    assert.strictEqual(lockInUS.resolved_price.currency, 'USD');
+  });
+
+  test('admin pricing list returns every override', async () => {
+    const res = await req('GET', '/api/admin/pricing', null, adminCookie);
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.body.overrides.length >= 2);
+    const us = res.body.overrides.find(o => o.country === 'US');
+    assert.ok(us);
+    assert.strictEqual(us.product_slug, 'lock-in');
+    assert.strictEqual(us.currency, 'USD');
+  });
+
+  test('admin pricing for one product returns scoped overrides', async () => {
+    const res = await req('GET', '/api/admin/pricing/' + lockInId, null, adminCookie);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.overrides.length, 2);
+    assert.ok(res.body.overrides.every(o => o.product_id === lockInId));
+  });
+
+  test('admin can update an override (PUT is upsert)', async () => {
+    const res = await req(
+      'PUT',
+      '/api/admin/pricing/' + lockInId + '/US',
+      { amount_minor: 3500, currency: 'USD' },
+      adminCookie
+    );
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.override.amount_minor, 3500);
+  });
+
+  test('admin delete removes the override (country-specific)', async () => {
+    const del = await req(
+      'DELETE',
+      '/api/admin/pricing/' + lockInId + '/US',
+      null,
+      adminCookie
+    );
+    assert.strictEqual(del.status, 200);
+
+    // US now falls back to DEFAULT override (EUR 2800)
+    const us = await req('GET', '/api/products?country=US');
+    const lockIn = us.body.find(p => p.slug === 'lock-in');
+    assert.strictEqual(lockIn.resolved_price.currency, 'EUR');
+    assert.strictEqual(lockIn.resolved_price.amount_minor, 2800);
+    assert.strictEqual(lockIn.resolved_price.is_override, true);
+  });
+
+  test('pricing PUT rejects bad input', async () => {
+    const r1 = await req('PUT', '/api/admin/pricing/' + lockInId + '/USA', { amount_minor: 100, currency: 'USD' }, adminCookie);
+    assert.strictEqual(r1.status, 400); // country must be 2-letter or DEFAULT
+
+    const r2 = await req('PUT', '/api/admin/pricing/' + lockInId + '/US', { amount_minor: 100, currency: 'US' }, adminCookie);
+    assert.strictEqual(r2.status, 400); // currency must be 3 chars
+
+    const r3 = await req('PUT', '/api/admin/pricing/999999/US', { amount_minor: 100, currency: 'USD' }, adminCookie);
+    assert.strictEqual(r3.status, 404); // unknown product
+
+    const r4 = await req('PUT', '/api/admin/pricing/' + lockInId + '/US', { currency: 'USD' }, adminCookie);
+    assert.strictEqual(r4.status, 400); // missing amount_minor
+  });
+
+  test('checkout uses override price for destination country', async () => {
+    // Clear the DEFAULT override so this test starts clean, then set a US-only one
+    await req('DELETE', '/api/admin/pricing/' + lockInId + '/DEFAULT', null, adminCookie);
+    await req(
+      'PUT',
+      '/api/admin/pricing/' + lockInId + '/JP',
+      { amount_minor: 500000, currency: 'JPY' }, // ¥5,000 for Japan
+      adminCookie
+    );
+
+    // New buyer shopping from JP
+    const reg = await req('POST', '/api/auth/register', {
+      email: 'japanbuyer@test.com', password: 'testpass12',
+      first_name: 'Hiro', last_name: 'K',
+      phone: '+819000000000', country: 'JP',
+    });
+    const jpCookie = cookies(reg.cookie);
+
+    await req('POST', '/api/cart/add', { slug: 'lock-in' }, jpCookie);
+    const coRes = await req('POST', '/api/checkout/session', {
+      address: { line1: '1 Shibuya', city: 'Tokyo', postcode: '150-0002', country: 'JP' },
+    }, jpCookie);
+    assert.strictEqual(coRes.status, 200);
+    const orderNumber = coRes.body.order_number;
+
+    // The order's stored line item should carry the override amount.
+    const db = require('../src/models/db');
+    const order = await db.one('SELECT * FROM orders WHERE order_number = $1', [orderNumber]);
+    const lineItems = await db.many('SELECT * FROM order_items WHERE order_id = $1', [order.id]);
+    assert.strictEqual(lineItems.length, 1);
+    assert.strictEqual(lineItems[0].unit_price_pence, 500000);
+    assert.strictEqual(order.subtotal_pence, 500000);
+  });
 });
