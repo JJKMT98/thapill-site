@@ -85,7 +85,7 @@
 <script>
 (function() {
   const orderNumber = window.location.pathname.split('/').pop();
-  const fmt = p => '£' + (p / 100).toFixed(2);
+  const fmt = (p) => (window.Locale && window.Locale.price) ? window.Locale.price(p) : ('£' + (p / 100).toFixed(2));
 
   async function load() {
     const res = await fetch('/api/checkout/success/' + orderNumber);

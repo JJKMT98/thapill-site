@@ -143,7 +143,10 @@
     }
   }
 
-  function fmt(pence) { return '£' + (pence / 100).toFixed(2); }
+  function fmt(pence) {
+    if (window.Locale && typeof window.Locale.price === 'function') return window.Locale.price(pence);
+    return '£' + (pence / 100).toFixed(2);
+  }
 
   async function refresh() {
     const [cartRes] = await Promise.all([
@@ -278,6 +281,10 @@
       open();
     },
   };
+
+  // Re-render cart when user switches currency or language
+  document.addEventListener('locale:change', () => refresh());
+  document.addEventListener('locale:ready',  () => refresh());
 
   // Init on DOM ready
   if (document.readyState === 'loading') {

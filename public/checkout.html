@@ -120,14 +120,29 @@
 <script src="/js/countries.js"></script>
 <script>
 (function() {
-  const fmt = p => '£' + (p / 100).toFixed(2);
+  const fmt = (p) => (window.Locale && window.Locale.price) ? window.Locale.price(p) : ('£' + (p / 100).toFixed(2));
   let cartSubtotal = 0;
+  let lastCart = null;
+  let lastShipping = null;
+
+  function renderItemsList(cart) {
+    if (!cart) return;
+    document.getElementById('summaryItems').innerHTML = cart.items.map(i => `
+      <div class="summary-item">
+        <span class="summary-item-name">${i.name}</span>
+        <span class="summary-item-qty">&times;${i.quantity}</span>
+        <span class="summary-item-price">${fmt(i.price_pence * i.quantity)}</span>
+      </div>
+    `).join('');
+    document.getElementById('summarySubtotal').textContent = fmt(cart.total_pence);
+  }
 
   async function refreshShipping() {
     const countryInput = document.getElementById('country');
     const code = (countryInput && countryInput.value) ? countryInput.value : '';
     const res = await fetch('/api/shipping' + (code ? '?country=' + encodeURIComponent(code) : '')).catch(() => null);
     const rule = res && res.ok ? await res.json() : { price_pence: 0, blocked: 0 };
+    lastShipping = rule;
     const ship = rule.price_pence || 0;
     document.getElementById('summaryShipLabel').textContent = 'Shipping' + (rule.country ? ' · ' + rule.country : '');
     const shipEl = document.getElementById('summaryShipping');
@@ -168,16 +183,8 @@
       return;
     }
     cartSubtotal = cart.total_pence;
-
-    const itemsEl = document.getElementById('summaryItems');
-    itemsEl.innerHTML = cart.items.map(i => `
-      <div class="summary-item">
-        <span class="summary-item-name">${i.name}</span>
-        <span class="summary-item-qty">&times;${i.quantity}</span>
-        <span class="summary-item-price">${fmt(i.price_pence * i.quantity)}</span>
-      </div>
-    `).join('');
-    document.getElementById('summarySubtotal').textContent = fmt(cart.total_pence);
+    lastCart = cart;
+    renderItemsList(cart);
 
     // Wire up the searchable country picker + shipping recompute
     const countryInput = document.getElementById('country');
@@ -241,6 +248,10 @@
       btn.textContent = 'Pay Now';
     }
   });
+
+  // Re-render cart line items + totals when user switches currency/language
+  document.addEventListener('locale:change', () => { renderItemsList(lastCart); refreshShipping(); });
+  document.addEventListener('locale:ready',  () => { renderItemsList(lastCart); refreshShipping(); });
 
   init();
 })();
