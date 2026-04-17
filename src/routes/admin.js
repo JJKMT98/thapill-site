@@ -185,6 +185,24 @@ router.delete('/pricing/:productId/:country', requireCap('pricing:write'), async
   res.json({ ok: true });
 });
 
+// ── Email test (owner/admin only) ─────────────────────────
+router.post('/email/test', requireCap('team:read'), async (req, res) => {
+  const { send } = require('../services/email');
+  const target = (req.body && req.body.to) || req.user.email;
+  try {
+    await send(target, 'thaPill — test email',
+      `<div style="background:#030306;color:#e8e8f0;padding:40px;font-family:'Space Grotesk',Arial,sans-serif;">
+         <h2 style="color:#00ff88;">Test email OK ✓</h2>
+         <p>Your SMTP credentials are live. This was triggered from the admin panel by <strong>${req.user.email}</strong>.</p>
+         <p style="color:#55556a;font-size:12px;">SMTP host: ${process.env.SMTP_HOST || '(none — using stub)'}</p>
+       </div>`);
+    res.json({ ok: true, sent_to: target });
+  } catch (e) {
+    console.error('[admin] test email failed:', e);
+    res.status(500).json({ ok: false, error: e.message || 'Send failed' });
+  }
+});
+
 // ── Team (owner only) ──────────────────────────────────────
 router.get('/team/roles', requireCap('team:read'), (_req, res) => {
   res.json({ roles: ROLES });

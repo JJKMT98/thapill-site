@@ -9,8 +9,27 @@ const Address = require('../models/address');
 const Points = require('../models/points');
 const Shipping = require('../models/shipping');
 const Pricing = require('../models/pricing');
+const Referral = require('../models/referral');
+const User = require('../models/user');
 const db = require('../models/db');
 const { generateOrderNumber } = require('../utils/order-number');
+const { sendOrderConfirmation, sendReferralSuccess, sendTierUpgrade } = require('../services/email');
+
+// Evaluates whether a user's lifetime points just crossed a tier
+// threshold. Returns the new tier name if so, otherwise null.
+async function bumpTierIfCrossed(userId, prevLifetime) {
+  const newLifetime = await Points.lifetimeEarned(userId);
+  const user = await User.findById(userId);
+  if (!user) return null;
+  let target = user.tier;
+  if (prevLifetime < 5000 && newLifetime >= 5000) target = 'elite';
+  else if (prevLifetime < 1000 && newLifetime >= 1000 && user.tier === 'starter') target = 'locked-in';
+  if (target !== user.tier) {
+    await User.updateTier(userId, target);
+    return target;
+  }
+  return null;
+}
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? require('stripe')(process.env.STRIPE_SECRET_KEY)
@@ -147,14 +166,69 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
     // No Stripe configured — mark as paid for dev/testing
     await Order.updateStatus(order.id, 'paid');
     if (req.user) {
+      const lifetimeBefore = await Points.lifetimeEarned(req.user.id);
+
       await Points.add({ user_id: req.user.id, amount: pointsEarned, type: 'purchase', description: `Order ${orderNumber}`, reference_id: order.id });
       const orderCount = await Order.countByUser(req.user.id);
-      if (orderCount === 1) {
+      const isFirstOrder = orderCount === 1;
+      if (isFirstOrder) {
         await Points.add({ user_id: req.user.id, amount: 200, type: 'purchase', description: 'First order bonus', reference_id: order.id });
       }
+
+      // Tier-upgrade check + email (fire-and-forget).
+      const newTier = await bumpTierIfCrossed(req.user.id, lifetimeBefore);
+      if (newTier) {
+        sendTierUpgrade(req.user, newTier).catch((e) => console.error('[email] tier upgrade failed:', e && e.message));
+      }
+
+      // Referral reward: when the referred user completes their first
+      // purchase, credit the referrer +500pts and email them.
+      if (isFirstOrder && req.user.referred_by) {
+        try {
+          const referrer = await User.findById(req.user.referred_by);
+          if (referrer) {
+            await Points.add({
+              user_id: referrer.id,
+              amount: 500,
+              type: 'referral',
+              description: `Referred ${req.user.first_name} — first purchase`,
+              reference_id: order.id,
+            });
+            // Bump the referral row status + reward
+            const ref = await Referral.findByReferred(req.user.id);
+            if (ref) await Referral.updateStatus(ref.id, 'rewarded', 500);
+            sendReferralSuccess(referrer, req.user.first_name).catch((e) => console.error('[email] referral success failed:', e && e.message));
+
+            // Referrer may have crossed a tier too
+            const referrerLifetime = await Points.lifetimeEarned(referrer.id) - 500;
+            const referrerNewTier = await bumpTierIfCrossed(referrer.id, referrerLifetime);
+            if (referrerNewTier) {
+              sendTierUpgrade(referrer, referrerNewTier).catch(() => {});
+            }
+          }
+        } catch (e) {
+          console.error('[checkout] referral reward failed:', e && e.message);
+        }
+      }
+
       await Cart.clearUser(req.user.id);
     } else {
       await Cart.clearSession(req.sessionId);
+    }
+
+    // Fire order-confirmation email (fire-and-forget — never block the
+    // checkout response on SMTP). Works for guests too: if the address
+    // form carried an email we use that, otherwise fall back to the
+    // logged-in user's email.
+    try {
+      const emailTo = req.user ? req.user.email : (address && address.email);
+      if (emailTo) {
+        const orderItems = await Order.getItems(order.id);
+        sendOrderConfirmation({ email: emailTo }, { ...order, total_pence: subtotal + shippingPence, points_earned: req.user ? pointsEarned : 0 }, orderItems)
+          .catch((e) => console.error('[email] order confirmation failed:', e && e.message));
+      }
+    } catch (e) {
+      console.error('[email] order confirmation setup failed:', e && e.message);
     }
 
     res.json({ url: `/order/success/${orderNumber}`, order_number: orderNumber });

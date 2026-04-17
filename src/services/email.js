@@ -62,4 +62,14 @@ async function sendTierUpgrade(user, newTier) {
   return send(user.email, t.subject, t.html);
 }
 
-module.exports = { send, sendVerification, sendPasswordReset, sendOrderConfirmation, sendShipped, sendDelivered, sendReferralSuccess, sendTierUpgrade };
+async function sendPointsEarned(user, amount, reason) {
+  const t = templates.pointsEarned(user, amount, reason);
+  return send(user.email, t.subject, t.html);
+}
+
+module.exports = {
+  send,
+  sendVerification, sendPasswordReset,
+  sendOrderConfirmation, sendShipped, sendDelivered,
+  sendReferralSuccess, sendTierUpgrade, sendPointsEarned,
+};

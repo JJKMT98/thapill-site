@@ -73,6 +73,11 @@
       </div>
 
       <form id="checkoutForm">
+        <div class="section-label">Contact</div>
+        <div class="form-group" id="guestEmailGroup">
+          <label for="email">Email (for order confirmation)</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email">
+        </div>
         <div class="section-label">Shipping Address</div>
         <div class="form-group">
           <label for="line1">Address Line 1</label>
@@ -173,6 +178,8 @@
     if (meRes && meRes.ok) {
       document.getElementById('guestNote').style.display = 'none';
       document.getElementById('checkoutSub').textContent = 'Complete your order below.';
+      document.getElementById('guestEmailGroup').style.display = 'none';
+      document.getElementById('email').removeAttribute('required');
     }
 
     // Load cart
@@ -213,7 +220,18 @@
     btn.disabled = true;
     btn.textContent = 'Processing...';
 
+    const emailVal = document.getElementById('email').value.trim();
+    const emailGroupVisible = document.getElementById('guestEmailGroup').style.display !== 'none';
+    if (emailGroupVisible && (!emailVal || !emailVal.includes('@'))) {
+      const err = document.getElementById('globalError');
+      err.textContent = 'Enter a valid email so we can send your order confirmation.';
+      err.classList.add('visible');
+      btn.disabled = false;
+      btn.textContent = 'Pay Now';
+      return;
+    }
     const address = {
+      email: emailVal || null,
       line1: document.getElementById('line1').value,
       line2: document.getElementById('line2').value || null,
       city: document.getElementById('city').value,

@@ -3,7 +3,9 @@ const router = express.Router();
 
 const Order = require('../models/order');
 const Shipment = require('../models/shipment');
-const { requireAuth } = require('../middleware/auth');
+const User = require('../models/user');
+const { requireAuth, requireCap } = require('../middleware/auth');
+const { sendShipped, sendDelivered } = require('../services/email');
 
 const STATUSES = ['order-placed', 'processing', 'shipped', 'in-transit', 'out-for-delivery', 'delivered'];
 
@@ -47,11 +49,7 @@ router.get('/:orderNumber', async (req, res) => {
   });
 });
 
-router.post('/admin/:orderNumber/status', requireAuth, async (req, res) => {
-  if (req.user.email !== (process.env.ADMIN_EMAIL || 'hello@thapill.com')) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
+router.post('/admin/:orderNumber/status', requireAuth, requireCap('orders:write'), async (req, res) => {
   const { status, tracking_number, tracking_url, carrier, estimated_delivery, detail } = req.body;
   const order = await Order.findByNumber(req.params.orderNumber);
   if (!order) return res.status(404).json({ error: 'Order not found' });
@@ -78,6 +76,27 @@ router.post('/admin/:orderNumber/status', requireAuth, async (req, res) => {
     : (status === 'shipped' || status === 'in-transit' || status === 'out-for-delivery') ? 'shipped'
     : order.status;
   await Order.updateStatus(order.id, orderStatus);
+
+  // Notify the buyer. Guest orders stored the buyer's email in notes.
+  try {
+    let buyerEmail = null;
+    if (order.user_id) {
+      const u = await User.findById(order.user_id);
+      buyerEmail = u && u.email;
+    } else if (order.notes) {
+      try { const a = JSON.parse(order.notes); buyerEmail = a && a.email; } catch {}
+    }
+    if (buyerEmail) {
+      const reloaded = await Shipment.findByOrder(order.id);
+      if (status === 'shipped') {
+        sendShipped({ email: buyerEmail }, order, reloaded || shipment).catch((e) => console.error('[email] shipped failed:', e && e.message));
+      } else if (status === 'delivered') {
+        sendDelivered({ email: buyerEmail }, order).catch((e) => console.error('[email] delivered failed:', e && e.message));
+      }
+    }
+  } catch (e) {
+    console.error('[email] status notify setup failed:', e && e.message);
+  }
 
   res.json({ ok: true, status });
 });
