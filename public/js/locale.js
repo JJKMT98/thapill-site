@@ -1,0 +1,539 @@
+// thaPill locale module — currency + language detection, top-corner switcher,
+// global t() and price() helpers. No page-specific wiring lives here; pages opt
+// in by adding data-i18n / data-price-pence attributes (see commits that follow).
+(function () {
+  // ─────────────────────────────────────────────────────────────────
+  // Currencies
+  //   rate is GBP→target multiplier (1 GBP = N target).
+  //   Static for now — Javed updates these via the admin later.
+  // ─────────────────────────────────────────────────────────────────
+  const CURRENCIES = {
+    GBP: { code: 'GBP', symbol: '£',  rate: 1.00,    decimals: 2, position: 'pre'  },
+    USD: { code: 'USD', symbol: '$',  rate: 1.27,    decimals: 2, position: 'pre'  },
+    EUR: { code: 'EUR', symbol: '€',  rate: 1.17,    decimals: 2, position: 'pre'  },
+    AED: { code: 'AED', symbol: 'AED ', rate: 4.66,  decimals: 2, position: 'pre'  },
+    CAD: { code: 'CAD', symbol: 'C$', rate: 1.74,    decimals: 2, position: 'pre'  },
+    AUD: { code: 'AUD', symbol: 'A$', rate: 1.93,    decimals: 2, position: 'pre'  },
+    JPY: { code: 'JPY', symbol: '¥',  rate: 192.00,  decimals: 0, position: 'pre'  },
+    CNY: { code: 'CNY', symbol: '¥',  rate: 9.20,    decimals: 2, position: 'pre'  },
+    KRW: { code: 'KRW', symbol: '₩',  rate: 1750.00, decimals: 0, position: 'pre'  },
+    INR: { code: 'INR', symbol: '₹',  rate: 106.00,  decimals: 0, position: 'pre'  },
+    SGD: { code: 'SGD', symbol: 'S$', rate: 1.71,    decimals: 2, position: 'pre'  },
+    CHF: { code: 'CHF', symbol: 'CHF ', rate: 1.10,  decimals: 2, position: 'pre'  },
+    SAR: { code: 'SAR', symbol: 'SAR ', rate: 4.76,  decimals: 2, position: 'pre'  },
+  };
+
+  // Country (ISO-2) → preferred currency. Fallback: GBP.
+  const COUNTRY_CURRENCY = {
+    GB:'GBP', IE:'EUR',
+    US:'USD', CA:'CAD', AU:'AUD', NZ:'AUD',
+    AT:'EUR', BE:'EUR', BG:'EUR', HR:'EUR', CY:'EUR', CZ:'EUR', DK:'EUR', EE:'EUR',
+    FI:'EUR', FR:'EUR', DE:'EUR', GR:'EUR', HU:'EUR', IT:'EUR', LV:'EUR', LT:'EUR',
+    LU:'EUR', MT:'EUR', NL:'EUR', PL:'EUR', PT:'EUR', RO:'EUR', SK:'EUR', SI:'EUR',
+    ES:'EUR', SE:'EUR', NO:'EUR', IS:'EUR', LI:'CHF', CH:'CHF',
+    AE:'AED', SA:'SAR', QA:'AED', KW:'AED', BH:'AED', OM:'AED',
+    JP:'JPY', CN:'CNY', HK:'CNY', TW:'CNY', KR:'KRW',
+    IN:'INR', SG:'SGD',
+  };
+
+  // Country → preferred language (subset we ship translations for).
+  // Falls back to 'en' for everything else.
+  const COUNTRY_LANG = {
+    FR:'fr', BE:'fr', LU:'fr', MC:'fr', CI:'fr', SN:'fr', CA:'en', // CA defaults EN; users can switch
+    ES:'es', MX:'es', AR:'es', CO:'es', CL:'es', PE:'es', VE:'es',
+    IT:'it', VA:'it', SM:'it',
+    DE:'de', AT:'de', LI:'de', CH:'de',
+    AE:'ar', SA:'ar', QA:'ar', KW:'ar', BH:'ar', OM:'ar', EG:'ar', JO:'ar', LB:'ar',
+    SY:'ar', IQ:'ar', YE:'ar', PS:'ar', LY:'ar', TN:'ar', DZ:'ar', MA:'ar',
+    CN:'zh', HK:'zh', TW:'zh', SG:'zh',
+    KR:'ko',
+  };
+
+  // Languages we ship. Each one is a flat key→string dictionary.
+  // Keys use dot notation; pages can pass any key to t().
+  const STRINGS = {
+    en: {
+      'switcher.language': 'Language',
+      'switcher.currency': 'Currency',
+      'switcher.region':   'Region',
+      'switcher.title':    'Site preferences',
+      'switcher.done':     'Done',
+
+      'nav.formula':       'Formula',
+      'nav.pricing':       'Pricing',
+      'nav.login':         'Log In',
+      'nav.dashboard':     'Dashboard',
+      'nav.lockIn':        'Lock In',
+
+      'cart.title':        'Your Cart',
+      'cart.empty':        'Your cart is empty',
+      'cart.shopNow':      'Shop Now',
+      'cart.subtotal':     'Subtotal',
+      'cart.shipping':     'Shipping',
+      'cart.free':         'Free',
+      'cart.total':        'Total',
+      'cart.checkout':     'Checkout',
+      'cart.checkoutGuest':'Checkout as Guest',
+      'cart.createAcct':   'Create Account & Checkout',
+      'cart.continue':     'Continue shopping',
+      'cart.orLogin':      'or log in',
+      'cart.remove':       'Remove',
+      'cart.express':      'Express Checkout',
+
+      'price.month':       '/mo',
+      'price.save':        'SAVE',
+    },
+
+    fr: {
+      'switcher.language': 'Langue',
+      'switcher.currency': 'Devise',
+      'switcher.region':   'Région',
+      'switcher.title':    'Préférences du site',
+      'switcher.done':     'Terminé',
+
+      'nav.formula':       'Formule',
+      'nav.pricing':       'Tarifs',
+      'nav.login':         'Connexion',
+      'nav.dashboard':     'Tableau de bord',
+      'nav.lockIn':        'Lock In',
+
+      'cart.title':        'Votre panier',
+      'cart.empty':        'Votre panier est vide',
+      'cart.shopNow':      'Acheter',
+      'cart.subtotal':     'Sous-total',
+      'cart.shipping':     'Livraison',
+      'cart.free':         'Gratuit',
+      'cart.total':        'Total',
+      'cart.checkout':     'Commander',
+      'cart.checkoutGuest':'Commander en invité',
+      'cart.createAcct':   'Créer un compte & commander',
+      'cart.continue':     'Continuer mes achats',
+      'cart.orLogin':      'ou se connecter',
+      'cart.remove':       'Supprimer',
+      'cart.express':      'Paiement express',
+
+      'price.month':       '/mois',
+      'price.save':        'ÉCONOMISEZ',
+    },
+
+    es: {
+      'switcher.language': 'Idioma',
+      'switcher.currency': 'Moneda',
+      'switcher.region':   'Región',
+      'switcher.title':    'Preferencias del sitio',
+      'switcher.done':     'Listo',
+
+      'nav.formula':       'Fórmula',
+      'nav.pricing':       'Precios',
+      'nav.login':         'Acceder',
+      'nav.dashboard':     'Panel',
+      'nav.lockIn':        'Lock In',
+
+      'cart.title':        'Tu carrito',
+      'cart.empty':        'Tu carrito está vacío',
+      'cart.shopNow':      'Comprar',
+      'cart.subtotal':     'Subtotal',
+      'cart.shipping':     'Envío',
+      'cart.free':         'Gratis',
+      'cart.total':        'Total',
+      'cart.checkout':     'Pagar',
+      'cart.checkoutGuest':'Pagar como invitado',
+      'cart.createAcct':   'Crear cuenta y pagar',
+      'cart.continue':     'Seguir comprando',
+      'cart.orLogin':      'o iniciar sesión',
+      'cart.remove':       'Quitar',
+      'cart.express':      'Pago exprés',
+
+      'price.month':       '/mes',
+      'price.save':        'AHORRA',
+    },
+
+    it: {
+      'switcher.language': 'Lingua',
+      'switcher.currency': 'Valuta',
+      'switcher.region':   'Regione',
+      'switcher.title':    'Preferenze del sito',
+      'switcher.done':     'Fatto',
+
+      'nav.formula':       'Formula',
+      'nav.pricing':       'Prezzi',
+      'nav.login':         'Accedi',
+      'nav.dashboard':     'Dashboard',
+      'nav.lockIn':        'Lock In',
+
+      'cart.title':        'Il tuo carrello',
+      'cart.empty':        'Il tuo carrello è vuoto',
+      'cart.shopNow':      'Acquista',
+      'cart.subtotal':     'Subtotale',
+      'cart.shipping':     'Spedizione',
+      'cart.free':         'Gratis',
+      'cart.total':        'Totale',
+      'cart.checkout':     'Checkout',
+      'cart.checkoutGuest':'Checkout come ospite',
+      'cart.createAcct':   'Crea account & checkout',
+      'cart.continue':     'Continua lo shopping',
+      'cart.orLogin':      'o accedi',
+      'cart.remove':       'Rimuovi',
+      'cart.express':      'Checkout espresso',
+
+      'price.month':       '/mese',
+      'price.save':        'RISPARMIA',
+    },
+
+    de: {
+      'switcher.language': 'Sprache',
+      'switcher.currency': 'Währung',
+      'switcher.region':   'Region',
+      'switcher.title':    'Website-Einstellungen',
+      'switcher.done':     'Fertig',
+
+      'nav.formula':       'Formel',
+      'nav.pricing':       'Preise',
+      'nav.login':         'Anmelden',
+      'nav.dashboard':     'Dashboard',
+      'nav.lockIn':        'Lock In',
+
+      'cart.title':        'Dein Warenkorb',
+      'cart.empty':        'Dein Warenkorb ist leer',
+      'cart.shopNow':      'Jetzt kaufen',
+      'cart.subtotal':     'Zwischensumme',
+      'cart.shipping':     'Versand',
+      'cart.free':         'Kostenlos',
+      'cart.total':        'Gesamt',
+      'cart.checkout':     'Zur Kasse',
+      'cart.checkoutGuest':'Als Gast bezahlen',
+      'cart.createAcct':   'Konto erstellen & bezahlen',
+      'cart.continue':     'Weiter einkaufen',
+      'cart.orLogin':      'oder anmelden',
+      'cart.remove':       'Entfernen',
+      'cart.express':      'Express-Checkout',
+
+      'price.month':       '/Monat',
+      'price.save':        'SPARE',
+    },
+
+    ar: {
+      'switcher.language': 'اللغة',
+      'switcher.currency': 'العملة',
+      'switcher.region':   'المنطقة',
+      'switcher.title':    'تفضيلات الموقع',
+      'switcher.done':     'تم',
+
+      'nav.formula':       'التركيبة',
+      'nav.pricing':       'الأسعار',
+      'nav.login':         'تسجيل الدخول',
+      'nav.dashboard':     'لوحة التحكم',
+      'nav.lockIn':        'Lock In',
+
+      'cart.title':        'سلتك',
+      'cart.empty':        'سلتك فارغة',
+      'cart.shopNow':      'تسوّق الآن',
+      'cart.subtotal':     'المجموع الفرعي',
+      'cart.shipping':     'الشحن',
+      'cart.free':         'مجاني',
+      'cart.total':        'المجموع',
+      'cart.checkout':     'إتمام الشراء',
+      'cart.checkoutGuest':'إتمام الشراء كزائر',
+      'cart.createAcct':   'أنشئ حسابًا وأكمل الشراء',
+      'cart.continue':     'متابعة التسوق',
+      'cart.orLogin':      'أو سجّل الدخول',
+      'cart.remove':       'إزالة',
+      'cart.express':      'الدفع السريع',
+
+      'price.month':       '/شهر',
+      'price.save':        'وفّر',
+    },
+
+    zh: {
+      'switcher.language': '语言',
+      'switcher.currency': '货币',
+      'switcher.region':   '地区',
+      'switcher.title':    '站点偏好',
+      'switcher.done':     '完成',
+
+      'nav.formula':       '配方',
+      'nav.pricing':       '价格',
+      'nav.login':         '登录',
+      'nav.dashboard':     '仪表板',
+      'nav.lockIn':        'Lock In',
+
+      'cart.title':        '您的购物车',
+      'cart.empty':        '购物车是空的',
+      'cart.shopNow':      '立即购买',
+      'cart.subtotal':     '小计',
+      'cart.shipping':     '配送',
+      'cart.free':         '免费',
+      'cart.total':        '总计',
+      'cart.checkout':     '结账',
+      'cart.checkoutGuest':'以访客身份结账',
+      'cart.createAcct':   '创建账户并结账',
+      'cart.continue':     '继续购物',
+      'cart.orLogin':      '或登录',
+      'cart.remove':       '移除',
+      'cart.express':      '快速结账',
+
+      'price.month':       '/月',
+      'price.save':        '节省',
+    },
+
+    ko: {
+      'switcher.language': '언어',
+      'switcher.currency': '통화',
+      'switcher.region':   '지역',
+      'switcher.title':    '사이트 환경설정',
+      'switcher.done':     '완료',
+
+      'nav.formula':       '성분',
+      'nav.pricing':       '가격',
+      'nav.login':         '로그인',
+      'nav.dashboard':     '대시보드',
+      'nav.lockIn':        'Lock In',
+
+      'cart.title':        '장바구니',
+      'cart.empty':        '장바구니가 비어 있습니다',
+      'cart.shopNow':      '쇼핑하기',
+      'cart.subtotal':     '소계',
+      'cart.shipping':     '배송',
+      'cart.free':         '무료',
+      'cart.total':        '합계',
+      'cart.checkout':     '결제하기',
+      'cart.checkoutGuest':'비회원 결제',
+      'cart.createAcct':   '계정 만들고 결제',
+      'cart.continue':     '쇼핑 계속하기',
+      'cart.orLogin':      '또는 로그인',
+      'cart.remove':       '삭제',
+      'cart.express':      '간편 결제',
+
+      'price.month':       '/월',
+      'price.save':        '할인',
+    },
+  };
+
+  const LANGS = [
+    { code: 'en', name: 'English' },
+    { code: 'fr', name: 'Français' },
+    { code: 'es', name: 'Español' },
+    { code: 'it', name: 'Italiano' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'ar', name: 'العربية' },
+    { code: 'zh', name: '中文' },
+    { code: 'ko', name: '한국어' },
+  ];
+
+  const RTL = new Set(['ar']);
+
+  // ─────────────────────────────────────────────────────────────────
+  // State (persisted to localStorage; can be overridden by ?lang= / ?cur=)
+  // ─────────────────────────────────────────────────────────────────
+  const LS_LANG = 'thapill_lang';
+  const LS_CUR  = 'thapill_currency';
+  const LS_AUTO = 'thapill_locale_auto'; // 1 = follow geo, 0 = user override
+
+  let state = {
+    lang: localStorage.getItem(LS_LANG) || null,
+    currency: localStorage.getItem(LS_CUR) || null,
+    auto: localStorage.getItem(LS_AUTO) !== '0',
+    country: null,
+  };
+
+  function applyQueryOverrides() {
+    const p = new URLSearchParams(window.location.search);
+    const qLang = p.get('lang');
+    const qCur  = p.get('cur') || p.get('currency');
+    if (qLang && STRINGS[qLang]) { state.lang = qLang; state.auto = false; localStorage.setItem(LS_LANG, qLang); localStorage.setItem(LS_AUTO, '0'); }
+    if (qCur && CURRENCIES[qCur.toUpperCase()]) { state.currency = qCur.toUpperCase(); state.auto = false; localStorage.setItem(LS_CUR, state.currency); localStorage.setItem(LS_AUTO, '0'); }
+  }
+
+  async function detectFromGeo() {
+    if (state.lang && state.currency) return;
+    try {
+      const res = await fetch('/api/geo');
+      if (!res.ok) return;
+      const d = await res.json();
+      state.country = (d && d.country) || null;
+      if (state.auto && state.country) {
+        if (!state.lang) state.lang = COUNTRY_LANG[state.country] || 'en';
+        if (!state.currency) state.currency = COUNTRY_CURRENCY[state.country] || 'GBP';
+      }
+    } catch {}
+    if (!state.lang) state.lang = 'en';
+    if (!state.currency) state.currency = 'GBP';
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Public helpers
+  // ─────────────────────────────────────────────────────────────────
+  function t(key, fallback) {
+    const dict = STRINGS[state.lang] || STRINGS.en;
+    return (dict && dict[key]) || (STRINGS.en[key]) || (fallback != null ? fallback : key);
+  }
+
+  function price(pence) {
+    const c = CURRENCIES[state.currency] || CURRENCIES.GBP;
+    const value = (pence / 100) * c.rate;
+    const decs = c.decimals;
+    const formatted = decs === 0 ? Math.round(value).toLocaleString() : value.toFixed(decs);
+    return c.position === 'pre' ? c.symbol + formatted : formatted + c.symbol;
+  }
+
+  // Apply current language/currency to everything in the DOM that opted in.
+  function applyToDOM(root) {
+    root = root || document;
+    document.documentElement.setAttribute('lang', state.lang);
+    document.documentElement.setAttribute('dir', RTL.has(state.lang) ? 'rtl' : 'ltr');
+
+    root.querySelectorAll('[data-i18n]').forEach((el) => {
+      const key = el.getAttribute('data-i18n');
+      const txt = t(key);
+      if (el.placeholder !== undefined && el.tagName === 'INPUT') el.placeholder = txt;
+      else el.textContent = txt;
+    });
+    root.querySelectorAll('[data-i18n-html]').forEach((el) => {
+      el.innerHTML = t(el.getAttribute('data-i18n-html'));
+    });
+    root.querySelectorAll('[data-price-pence]').forEach((el) => {
+      const p = Number(el.getAttribute('data-price-pence')) || 0;
+      el.textContent = price(p);
+    });
+  }
+
+  function setLanguage(lang) {
+    if (!STRINGS[lang]) return;
+    state.lang = lang;
+    state.auto = false;
+    localStorage.setItem(LS_LANG, lang);
+    localStorage.setItem(LS_AUTO, '0');
+    applyToDOM();
+    document.dispatchEvent(new CustomEvent('locale:change', { detail: { ...state } }));
+  }
+  function setCurrency(cur) {
+    cur = (cur || '').toUpperCase();
+    if (!CURRENCIES[cur]) return;
+    state.currency = cur;
+    state.auto = false;
+    localStorage.setItem(LS_CUR, cur);
+    localStorage.setItem(LS_AUTO, '0');
+    applyToDOM();
+    document.dispatchEvent(new CustomEvent('locale:change', { detail: { ...state } }));
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Top-corner switcher widget (floating, every page)
+  // ─────────────────────────────────────────────────────────────────
+  function injectSwitcher() {
+    if (document.getElementById('localeSwitcher')) return;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .locale-switcher { position: fixed; top: 18px; right: 100px; z-index: 9985; }
+      [dir="rtl"] .locale-switcher { right: auto; left: 100px; }
+      .locale-trigger {
+        display: flex; align-items: center; gap: 6px;
+        background: rgba(8,8,15,0.6); border: 1px solid var(--border, #151525);
+        color: var(--text, #e8e8f0); font-family: 'JetBrains Mono', monospace;
+        font-size: 11px; letter-spacing: 0.5px; padding: 6px 10px;
+        border-radius: 999px; cursor: pointer; backdrop-filter: blur(10px);
+        transition: border-color 0.2s, color 0.2s;
+      }
+      .locale-trigger:hover { border-color: var(--electric, #00ff88); color: var(--electric, #00ff88); }
+      .locale-trigger .sep { color: var(--text-dim, #55556a); }
+      .locale-panel {
+        position: absolute; top: calc(100% + 8px); right: 0;
+        width: 240px; background: var(--card, #0c0c18);
+        border: 1px solid var(--border, #151525); border-radius: 12px;
+        padding: 14px; display: none; box-shadow: 0 16px 50px rgba(0,0,0,0.5);
+      }
+      [dir="rtl"] .locale-panel { right: auto; left: 0; }
+      .locale-switcher.open .locale-panel { display: block; }
+      .locale-panel h4 { font-size: 11px; color: var(--text-dim, #55556a);
+        text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px;
+        font-family: 'JetBrains Mono', monospace; font-weight: 600;
+      }
+      .locale-panel select {
+        width: 100%; background: var(--surface, #08080f);
+        border: 1px solid var(--border, #151525); border-radius: 8px;
+        color: var(--text, #e8e8f0); padding: 8px 10px; font-size: 13px;
+        font-family: 'Space Grotesk', sans-serif; outline: none; margin-bottom: 12px;
+      }
+      .locale-panel select:focus { border-color: var(--electric, #00ff88); }
+    `;
+    document.head.appendChild(style);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'locale-switcher';
+    wrap.id = 'localeSwitcher';
+    wrap.innerHTML = `
+      <button class="locale-trigger" id="localeTrigger" aria-haspopup="true" aria-expanded="false">
+        <span id="localeLangLabel">EN</span>
+        <span class="sep">·</span>
+        <span id="localeCurLabel">GBP</span>
+        <span class="sep">▾</span>
+      </button>
+      <div class="locale-panel" id="localePanel">
+        <h4 data-locale-label="language">Language</h4>
+        <select id="localeLangSel"></select>
+        <h4 data-locale-label="currency">Currency</h4>
+        <select id="localeCurSel"></select>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+
+    const trigger = document.getElementById('localeTrigger');
+    const panel   = document.getElementById('localePanel');
+    const langSel = document.getElementById('localeLangSel');
+    const curSel  = document.getElementById('localeCurSel');
+
+    langSel.innerHTML = LANGS.map((l) => `<option value="${l.code}">${l.name}</option>`).join('');
+    curSel.innerHTML  = Object.values(CURRENCIES)
+      .map((c) => `<option value="${c.code}">${c.code} (${c.symbol.trim()})</option>`).join('');
+
+    function refreshLabels() {
+      document.getElementById('localeLangLabel').textContent = state.lang.toUpperCase();
+      document.getElementById('localeCurLabel').textContent  = state.currency;
+      langSel.value = state.lang;
+      curSel.value  = state.currency;
+      wrap.querySelectorAll('[data-locale-label="language"]').forEach((el) => el.textContent = t('switcher.language'));
+      wrap.querySelectorAll('[data-locale-label="currency"]').forEach((el) => el.textContent = t('switcher.currency'));
+    }
+
+    trigger.addEventListener('click', () => {
+      wrap.classList.toggle('open');
+      trigger.setAttribute('aria-expanded', wrap.classList.contains('open') ? 'true' : 'false');
+    });
+    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) wrap.classList.remove('open'); });
+
+    langSel.addEventListener('change', () => { setLanguage(langSel.value); refreshLabels(); });
+    curSel.addEventListener('change', () => { setCurrency(curSel.value); refreshLabels(); });
+    document.addEventListener('locale:change', refreshLabels);
+
+    refreshLabels();
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Bootstrap
+  // ─────────────────────────────────────────────────────────────────
+  applyQueryOverrides();
+
+  async function init() {
+    await detectFromGeo();
+    if (!STRINGS[state.lang]) state.lang = 'en';
+    if (!CURRENCIES[state.currency]) state.currency = 'GBP';
+    applyToDOM();
+    injectSwitcher();
+    document.dispatchEvent(new CustomEvent('locale:ready', { detail: { ...state } }));
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  window.Locale = {
+    t, price, applyToDOM, setLanguage, setCurrency,
+    get lang() { return state.lang; },
+    get currency() { return state.currency; },
+    get country() { return state.country; },
+    LANGS, CURRENCIES,
+  };
+})();
