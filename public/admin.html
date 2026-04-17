@@ -68,6 +68,7 @@
     <a href="#" data-tab="visitors">Visitors</a>
     <a href="#" data-tab="products">Products</a>
     <a href="#" data-tab="shipping">Shipping</a>
+    <a href="#" data-tab="pricing">Pricing</a>
     <a href="#" data-tab="chat">Chat</a>
   </div>
 </nav>
@@ -157,6 +158,43 @@
     </div>
   </div>
 
+  <!-- Pricing overrides -->
+  <div class="admin-section" id="sec-pricing">
+    <div class="section-title">Pricing Overrides</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;">
+      Fix prices per country in that country's native currency. When no override exists for a country, the base GBP price is shown and converted via the currency switcher's FX rate. Code <code style="font-family:monospace;color:var(--electric);">DEFAULT</code> is a fallback when no country-specific row matches.
+    </p>
+    <table class="admin-table" style="margin-bottom:24px;">
+      <thead><tr><th>Product</th><th>Country</th><th>Amount (minor)</th><th>Displayed</th><th>Currency</th><th></th></tr></thead>
+      <tbody id="pricingRows"></tbody>
+    </table>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <div class="section-title" style="font-size:14px;">Add / update override</div>
+      <form id="pricingForm" style="display:grid;grid-template-columns:1fr 110px 140px 110px auto;gap:10px;align-items:end;">
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Product</label>
+          <select name="product_id" required style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);"></select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Country</label>
+          <input name="country" required maxlength="7" placeholder="US / DEFAULT" style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:monospace;text-transform:uppercase;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Amount (minor units)</label>
+          <input name="amount_minor" type="number" min="0" required value="0" style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:monospace;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Currency</label>
+          <input name="currency" required maxlength="3" placeholder="USD" style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:monospace;text-transform:uppercase;">
+        </div>
+        <button type="submit" style="padding:11px 18px;background:var(--electric);color:var(--bg);border:none;border-radius:6px;font-family:inherit;font-weight:600;cursor:pointer;">Save</button>
+      </form>
+      <p style="font-size:11px;color:var(--text-dim);margin-top:12px;font-family:monospace;">
+        Amount is in minor units: <strong>3000</strong> USD = $30.00 · <strong>25000</strong> JPY = ¥25,000 · <strong>9900</strong> AED = 99.00 AED.
+      </p>
+    </div>
+  </div>
+
   <!-- Chat -->
   <div class="admin-section" id="sec-chat">
     <div class="section-title">Live Chat</div>
@@ -184,6 +222,7 @@
       if (a.dataset.tab === 'visitors') loadVisitors();
       if (a.dataset.tab === 'products') loadProducts();
       if (a.dataset.tab === 'shipping') loadShipping();
+      if (a.dataset.tab === 'pricing') loadPricing();
       if (a.dataset.tab === 'chat') loadChatRooms();
     });
   });
@@ -360,6 +399,83 @@
     } else {
       const err = await res.json().catch(() => ({}));
       alert(err.error || 'Could not save rule');
+    }
+  });
+
+  // Pricing overrides
+  const CURRENCY_MINOR_DECIMALS = { JPY: 0, KRW: 0, INR: 0 }; // most have 2 decimals
+  const fmtCurrency = (amount_minor, currency) => {
+    const d = CURRENCY_MINOR_DECIMALS[currency] != null ? CURRENCY_MINOR_DECIMALS[currency] : 2;
+    const v = d === 0 ? Math.round(amount_minor) : (amount_minor / 100).toFixed(2);
+    return `${currency} ${v}`;
+  };
+
+  async function loadPricing() {
+    const [pRes, oRes] = await Promise.all([
+      fetch('/api/admin/products').then(r => r.json()),
+      fetch('/api/admin/pricing').then(r => r.json()),
+    ]);
+    const products = pRes.products || [];
+    const overrides = oRes.overrides || [];
+
+    // Populate product <select>
+    const sel = document.querySelector('#pricingForm select[name="product_id"]');
+    sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.slug})</option>`).join('');
+
+    const tbody = document.getElementById('pricingRows');
+    tbody.innerHTML = overrides.map(o => `<tr>
+      <td>${o.product_name || ''} <span style="color:var(--text-dim);font-family:monospace;font-size:11px;">${o.product_slug || ''}</span></td>
+      <td style="font-family:monospace;color:var(--electric);">${o.country}</td>
+      <td style="font-family:monospace;">${o.amount_minor}</td>
+      <td style="font-family:monospace;">${fmtCurrency(o.amount_minor, o.currency)}</td>
+      <td style="font-family:monospace;">${o.currency}</td>
+      <td>
+        <button data-edit-price data-pid="${o.product_id}" data-country="${o.country}" data-amount="${o.amount_minor}" data-currency="${o.currency}" style="background:none;border:1px solid var(--border);color:var(--text-dim);font-size:11px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;">Edit</button>
+        <button data-del-price data-pid="${o.product_id}" data-country="${o.country}" style="background:none;border:1px solid rgba(255,68,170,0.3);color:var(--neon-pink);font-size:11px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;margin-left:4px;">Delete</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);">No overrides yet — all countries use base GBP price with FX conversion.</td></tr>';
+
+    tbody.querySelectorAll('[data-edit-price]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const f = document.getElementById('pricingForm');
+        f.product_id.value  = btn.dataset.pid;
+        f.country.value     = btn.dataset.country;
+        f.amount_minor.value = btn.dataset.amount;
+        f.currency.value    = btn.dataset.currency;
+        f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+    tbody.querySelectorAll('[data-del-price]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm(`Delete ${btn.dataset.country} override?`)) return;
+        await fetch(`/api/admin/pricing/${btn.dataset.pid}/${btn.dataset.country}`, { method: 'DELETE' });
+        loadPricing();
+      });
+    });
+  }
+
+  document.getElementById('pricingForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const pid = Number(f.product_id.value);
+    const country = f.country.value.trim().toUpperCase();
+    const payload = {
+      amount_minor: Number(f.amount_minor.value) || 0,
+      currency: f.currency.value.trim().toUpperCase(),
+    };
+    const res = await fetch(`/api/admin/pricing/${pid}/${encodeURIComponent(country)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      f.country.value = '';
+      f.amount_minor.value = 0;
+      f.currency.value = '';
+      loadPricing();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'Could not save override');
     }
   });
 
