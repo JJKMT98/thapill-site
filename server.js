@@ -19,6 +19,7 @@ const referralRoutes = require('./src/routes/referrals');
 const trackingRoutes = require('./src/routes/tracking');
 const chatRoutes = require('./src/routes/chat');
 const adminRoutes = require('./src/routes/admin');
+const shippingRoutes = require('./src/routes/shipping');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -78,6 +79,7 @@ app.use('/api/referrals', referralRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/shipping', shippingRoutes);
 
 app.get('/tracking', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'tracking.html')));
 app.get('/tracking/:orderNumber', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'tracking.html')));

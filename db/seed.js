@@ -38,6 +38,11 @@ const products = [
   },
 ];
 
+const shippingRules = [
+  { country: 'GB', country_name: 'United Kingdom', price_pence: 0, blocked: 0, message: null },
+  { country: 'DEFAULT', country_name: 'Everywhere else', price_pence: 1500, blocked: 0, message: null },
+];
+
 async function seed() {
   await init();
   for (const p of products) {
@@ -46,6 +51,14 @@ async function seed() {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (slug) DO NOTHING`,
       [p.slug, p.name, p.description, p.price_pence, p.compare_at_pence, p.type, p.subscription_interval_days, p.stock, p.image_url]
+    );
+  }
+  for (const r of shippingRules) {
+    await run(
+      `INSERT INTO shipping_rules (country, country_name, price_pence, blocked, message)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (country) DO NOTHING`,
+      [r.country, r.country_name, r.price_pence, r.blocked, r.message]
     );
   }
   const { total } = await one('SELECT COUNT(*)::int as total FROM products');

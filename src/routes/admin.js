@@ -7,6 +7,7 @@ const User = require('../models/user');
 const Shipment = require('../models/shipment');
 const Chat = require('../models/chat');
 const Product = require('../models/product');
+const Shipping = require('../models/shipping');
 const db = require('../models/db');
 
 router.use(requireAuth, requireAdmin);
@@ -121,6 +122,28 @@ router.patch('/products/:id', async (req, res) => {
   if (!product) return res.status(404).json({ error: 'Product not found' });
   await Product.update({ ...product, ...req.body, id: product.id });
   res.json({ ok: true, product: await Product.findById(product.id) });
+});
+
+// ── Shipping rules ──────────────────────────────────────────
+router.get('/shipping', async (_req, res) => {
+  res.json({ rules: await Shipping.listAll() });
+});
+
+router.put('/shipping/:country', async (req, res) => {
+  const country = req.params.country.toUpperCase();
+  if (!country || (country !== 'DEFAULT' && country.length !== 2)) {
+    return res.status(400).json({ error: 'country must be 2-letter code or DEFAULT' });
+  }
+  await Shipping.upsert({ ...req.body, country });
+  const rule = await Shipping.findByCountry(country);
+  res.json({ ok: true, rule });
+});
+
+router.delete('/shipping/:country', async (req, res) => {
+  const country = req.params.country.toUpperCase();
+  if (country === 'DEFAULT') return res.status(400).json({ error: 'Cannot delete DEFAULT rule' });
+  await Shipping.remove(country);
+  res.json({ ok: true });
 });
 
 module.exports = router;

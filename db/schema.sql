@@ -165,6 +165,19 @@ ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ip_address TEXT;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_agent TEXT;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS referrer TEXT;
 
+-- Shipping rules per country. Row with country='DEFAULT' is the fallback.
+CREATE TABLE IF NOT EXISTS shipping_rules (
+    id SERIAL PRIMARY KEY,
+    country TEXT NOT NULL UNIQUE,
+    country_name TEXT,
+    price_pence INTEGER NOT NULL DEFAULT 0,
+    blocked INTEGER NOT NULL DEFAULT 0,
+    message TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_shipping_country ON shipping_rules(country);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_uid ON users(uid);
 CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code);

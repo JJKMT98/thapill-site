@@ -7,6 +7,7 @@ const Cart = require('../models/cart');
 const Order = require('../models/order');
 const Address = require('../models/address');
 const Points = require('../models/points');
+const Shipping = require('../models/shipping');
 const db = require('../models/db');
 const { generateOrderNumber } = require('../utils/order-number');
 
@@ -26,7 +27,19 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
 
     if (!items.length) return res.status(400).json({ error: 'Cart is empty' });
 
+    // Resolve shipping for the destination country (falls back to visitor geo, then DEFAULT)
+    const destCountry = (address?.country || req.geo?.country || 'GB').toUpperCase();
+    const shipping = await Shipping.resolve(destCountry);
+    if (shipping.blocked) {
+      return res.status(403).json({
+        error: shipping.message || `thaPill isn't shipping to ${destCountry} yet — drop your email and you'll be first in line when we plug in.`,
+        blocked: true,
+        country: destCountry,
+      });
+    }
+
     const subtotal = items.reduce((s, i) => s + i.price_pence * i.quantity, 0);
+    const shippingPence = shipping.price_pence || 0;
     const orderNumber = await generateOrderNumber();
 
     let addressId = null;
@@ -53,8 +66,8 @@ router.post('/session', optionalAuth, ensureSession, async (req, res) => {
       address_id: addressId,
       subtotal_pence: subtotal,
       discount_pence: 0,
-      shipping_pence: 0,
-      total_pence: subtotal,
+      shipping_pence: shippingPence,
+      total_pence: subtotal + shippingPence,
       points_earned: req.user ? pointsEarned : 0,
       points_redeemed: 0,
       stripe_session_id: null,
