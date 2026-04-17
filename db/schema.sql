@@ -178,6 +178,22 @@ CREATE TABLE IF NOT EXISTS shipping_rules (
 );
 CREATE INDEX IF NOT EXISTS idx_shipping_country ON shipping_rules(country);
 
+-- Per-country product price overrides. When a row exists for
+-- (product_id, country), the site shows that fixed price in the given
+-- currency instead of converting from the base GBP price.
+-- country='DEFAULT' is a fallback when no country-specific row matches.
+CREATE TABLE IF NOT EXISTS product_prices (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    country TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL,
+    currency TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_id, country)
+);
+CREATE INDEX IF NOT EXISTS idx_product_prices_country ON product_prices(product_id, country);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_uid ON users(uid);
 CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code);
