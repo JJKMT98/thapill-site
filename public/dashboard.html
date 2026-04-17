@@ -350,6 +350,24 @@
   .rw-history-amt.positive { color: var(--electric); }
   .rw-history-amt.negative { color: var(--neon-pink); }
 
+  /* Confetti canvas for tier-up */
+  .tier-confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+
+  /* Tier-up toast */
+  .tier-toast {
+    position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%) translateY(120%);
+    background: linear-gradient(135deg, rgba(0,255,136,0.15), rgba(119,51,255,0.15));
+    border: 1px solid var(--electric); border-radius: 14px;
+    padding: 16px 26px; display: flex; align-items: center; gap: 14px;
+    backdrop-filter: blur(20px); box-shadow: 0 10px 40px rgba(0,255,136,0.25);
+    z-index: 10001; transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    max-width: calc(100vw - 40px);
+  }
+  .tier-toast.show { transform: translateX(-50%) translateY(0); }
+  .tier-toast-emoji { font-size: 26px; }
+  .tier-toast-title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .tier-toast-sub { font-size: 12px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; }
+
   @media (max-width: 900px) {
     .dash-hero-inner { grid-template-columns: 1fr; gap: 24px; }
     .hero-bottle-wrap { width: 220px; height: 260px; margin: 0 auto; }
@@ -538,6 +556,71 @@
     if (window.Pilly && window.Pilly.marchAcross) {
       window.Pilly.marchAcross(document.getElementById('dashHero'), { size: 60, duration: 14, bottom: 16, zIndex: 3 });
     }
+
+    // Tier-up detection — if user crossed into a higher tier since last visit, celebrate.
+    try {
+      const KEY = 'thapill_dash_last_tier';
+      const prev = localStorage.getItem(KEY);
+      const current = user.tier || 'starter';
+      const rank = { starter: 0, 'locked-in': 1, elite: 2 };
+      if (prev && rank[current] > (rank[prev] || 0)) {
+        const niceName = current === 'locked-in' ? 'Locked In' : current.charAt(0).toUpperCase() + current.slice(1);
+        setTimeout(() => celebrateTier(niceName), 900);
+      }
+      localStorage.setItem(KEY, current);
+    } catch {}
+  }
+
+  // Confetti burst + toast when a tier threshold is crossed
+  function celebrateTier(tierName) {
+    fireConfetti();
+    const toast = document.createElement('div');
+    toast.className = 'tier-toast';
+    toast.innerHTML = `
+      <div class="tier-toast-emoji">⚡</div>
+      <div>
+        <div class="tier-toast-title">tier up. you hit ${tierName}.</div>
+        <div class="tier-toast-sub">aura farmed. loot unlocked.</div>
+      </div>`;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 600); }, 4200);
+  }
+
+  function fireConfetti() {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'tier-confetti';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    const colors = ['#00ff88', '#7733ff', '#4488ff', '#66ffbb', '#ff44aa'];
+    const particles = [];
+    for (let i = 0; i < 90; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 220,
+        y: canvas.height / 2,
+        vx: (Math.random() - 0.5) * 13,
+        vy: -Math.random() * 15 - 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 6 + 2,
+        life: 1,
+      });
+    }
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      for (const p of particles) {
+        if (p.life <= 0) continue;
+        alive = true;
+        p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life -= 0.01;
+        ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      }
+      if (alive) requestAnimationFrame(draw);
+      else canvas.remove();
+    }
+    draw();
   }
 
   function renderOverview(d) {
@@ -574,7 +657,9 @@
     // Points feed
     const feed = document.getElementById('pointsContainer');
     if (!pointsHistory || pointsHistory.length === 0) {
-      feed.innerHTML = '<div class="empty-state">No points activity yet. Lock in to start earning.</div>';
+      feed.innerHTML = '<div class="empty-state" id="pointsEmpty"><div id="pointsEmptyPilly"></div><div style="margin-top:12px;font-size:15px;color:var(--text);">no points yet.</div><div style="margin-top:6px;">lock in to start farming aura.</div></div>';
+      const holder = document.getElementById('pointsEmptyPilly');
+      if (window.Pilly && window.Pilly.sleepyAt && holder) window.Pilly.sleepyAt(holder, { size: 120 });
     } else {
       let html = '<div class="points-feed">';
       for (const p of pointsHistory) {
@@ -589,7 +674,11 @@
     }
 
     // Quick actions
-    document.getElementById('orderBtn').addEventListener('click', () => switchTab('shop'));
+    const orderBtn = document.getElementById('orderBtn');
+    orderBtn.addEventListener('click', () => switchTab('shop'));
+    if (window.Pilly && window.Pilly.sitOnButton) {
+      setTimeout(() => window.Pilly.sitOnButton(orderBtn, { size: 50 }), 600);
+    }
     document.getElementById('viewRewardsBtn').addEventListener('click', () => switchTab('rewards'));
     document.getElementById('shareRefBtn').addEventListener('click', () => {
       const link = d.referral_link || (window.location.origin + '/?ref=' + (d.user.referral_code || ''));
