@@ -9,171 +9,157 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/thapill-assets/apple-touch-icon.png">
 <link rel="stylesheet" href="css/style.css">
 <style>
-  .dash-page { min-height: 100vh; padding: 100px 48px 60px; position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
+  html, body { background: var(--bg); }
 
-  /* Welcome header */
-  .dash-welcome { margin-bottom: 40px; }
-  .dash-welcome h1 { font-size: 32px; font-weight: 600; margin-bottom: 8px; }
-  .dash-welcome h1 span { color: var(--electric); }
-  .dash-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .uid-badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    color: var(--electric);
-    background: rgba(0,255,136,0.08);
-    border: 1px solid rgba(0,255,136,0.2);
-    padding: 4px 12px;
-    border-radius: 6px;
+  /* Top nav */
+  .dash-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 16px 48px; background: rgba(3,3,6,0.82); border-bottom: 1px solid var(--border); backdrop-filter: blur(30px); }
+  .dash-nav-logo { height: 22px; opacity: 0.9; }
+  .dash-nav-right { display: flex; align-items: center; gap: 16px; }
+  .dash-nav-user { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-dim); }
+  .dash-nav-logout { font-size: 13px; color: var(--text-dim); cursor: pointer; background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 6px; font-family: 'Space Grotesk', sans-serif; transition: color 0.2s, border-color 0.2s; }
+  .dash-nav-logout:hover { color: var(--neon-pink); border-color: rgba(255,68,170,0.3); }
+
+  /* Hero */
+  .dash-hero {
     position: relative;
+    min-height: 420px;
+    padding: 120px 48px 60px;
     overflow: hidden;
+    background-image: linear-gradient(180deg, rgba(3,3,6,0.72) 0%, rgba(3,3,6,0.85) 60%, var(--bg) 100%), url('/thapill-assets/bg-hero.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
   }
-  .uid-badge::after {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0,255,136,0.15), transparent);
-    animation: shimmer 3s ease-in-out infinite;
+  .dash-hero-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 280px; gap: 48px; align-items: center; position: relative; z-index: 2; }
+  .dash-hero-copy h1 { font-size: clamp(32px, 5vw, 56px); font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 16px; }
+  .dash-hero-copy h1 .glow { color: var(--electric); text-shadow: 0 0 40px rgba(0,255,136,0.35); }
+  .dash-hero-sub { color: var(--text-dim); font-size: 15px; max-width: 420px; margin-bottom: 22px; line-height: 1.6; }
+  .dash-meta { display: flex; flex-wrap: wrap; gap: 10px; }
+  .uid-badge, .tier-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    padding: 5px 12px; border-radius: 6px; position: relative; overflow: hidden;
   }
+  .uid-badge { color: var(--electric); background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.2); }
+  .uid-badge::after { content: ''; position: absolute; inset: 0 auto 0 -100%; width: 100%; background: linear-gradient(90deg, transparent, rgba(0,255,136,0.18), transparent); animation: shimmer 3s ease-in-out infinite; }
   @keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }
-  .tier-badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 4px 10px;
-    border-radius: 6px;
-  }
+  .tier-badge { text-transform: uppercase; letter-spacing: 1px; font-size: 11px; }
   .tier-starter { color: var(--text-dim); background: rgba(85,85,106,0.15); border: 1px solid rgba(85,85,106,0.3); }
-  .tier-locked-in { color: var(--electric); background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.2); }
-  .tier-elite { color: var(--neon-purple); background: rgba(119,51,255,0.1); border: 1px solid rgba(119,51,255,0.3); }
+  .tier-locked-in { color: var(--electric); background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.2); box-shadow: 0 0 20px rgba(0,255,136,0.1); }
+  .tier-elite { color: var(--neon-purple); background: rgba(119,51,255,0.1); border: 1px solid rgba(119,51,255,0.3); box-shadow: 0 0 24px rgba(119,51,255,0.15); }
+
+  /* Hero bottle */
+  .hero-bottle-wrap { position: relative; width: 280px; height: 320px; display: flex; align-items: center; justify-content: center; }
+  .hero-bottle-ring { position: absolute; inset: 0; border-radius: 50%; filter: blur(28px); opacity: 0.55; animation: ringPulse 5s ease-in-out infinite; }
+  .ring-1 { background: radial-gradient(circle, rgba(0,255,136,0.45) 0%, transparent 60%); }
+  .ring-2 { background: radial-gradient(circle, rgba(119,51,255,0.4) 0%, transparent 60%); animation-delay: 1.6s; }
+  @keyframes ringPulse { 0%,100% { transform: scale(0.9); opacity: 0.35; } 50% { transform: scale(1.08); opacity: 0.7; } }
+  .hero-bottle-img { position: relative; z-index: 2; width: 85%; max-height: 100%; object-fit: contain; animation: bob 5s ease-in-out infinite; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6)); }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+
+  /* Tab nav (fixed below top nav) */
+  .dash-tabs {
+    position: sticky; top: 56px; z-index: 900;
+    background: rgba(3,3,6,0.92); backdrop-filter: blur(30px);
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: center; gap: 4px;
+    padding: 0 48px; overflow-x: auto;
+  }
+  .dash-tab {
+    background: none; border: none; color: var(--text-dim);
+    font-family: 'Space Grotesk', sans-serif; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 2px;
+    padding: 18px 22px; cursor: pointer; transition: color 0.2s;
+    position: relative; white-space: nowrap;
+  }
+  .dash-tab:hover { color: var(--text); }
+  .dash-tab.active { color: var(--electric); }
+  .dash-tab.active::after { content: ''; position: absolute; left: 20%; right: 20%; bottom: 0; height: 2px; background: var(--electric); box-shadow: 0 0 10px var(--electric); }
+
+  /* Tab panels */
+  .dash-main { max-width: 1200px; margin: 0 auto; padding: 40px 48px 80px; position: relative; z-index: 1; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeUp 0.45s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
   /* Stats */
   .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 40px; }
   .stat-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 24px;
-    transition: transform 0.3s, box-shadow 0.3s;
-    opacity: 0;
-    transform: translateY(30px);
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px;
+    transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    opacity: 0; transform: translateY(20px); position: relative; overflow: hidden;
   }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,255,136,0.4), transparent); opacity: 0; transition: opacity 0.3s; }
+  .stat-card:hover::before { opacity: 1; }
   .stat-card.visible { opacity: 1; transform: translateY(0); }
-  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
-  .stat-card-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
-  .stat-card-value { font-size: 36px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .stat-card:hover { border-color: rgba(0,255,136,0.2); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .stat-card-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; font-family: 'JetBrains Mono', monospace; margin-bottom: 10px; }
+  .stat-card-value { font-size: 36px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
   .stat-card-value.points { color: var(--neon-purple); }
   .stat-card-value.electric { color: var(--electric); }
-  .stat-card-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
-  .stat-points-glow { text-shadow: 0 0 20px rgba(119,51,255,0.4); }
+  .stat-card-sub { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+  .breathing-glow { animation: breathGlow 3s ease-in-out infinite; }
+  @keyframes breathGlow { 0%,100% { text-shadow: 0 0 15px rgba(119,51,255,0.3); } 50% { text-shadow: 0 0 30px rgba(119,51,255,0.6); } }
 
-  /* Sections */
+  /* Tier progress */
+  .tier-progress-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 40px; }
+  .tier-progress-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+  .tier-progress-title { font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; font-family: 'JetBrains Mono', monospace; }
+  .tier-progress-info { font-size: 13px; color: var(--text); }
+  .tier-progress-info .pts { color: var(--neon-purple); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .tier-progress-info .name { color: var(--electric); font-weight: 600; }
+  .tier-track { height: 8px; background: var(--surface); border-radius: 4px; overflow: hidden; position: relative; }
+  .tier-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--electric), var(--neon-purple)); width: 0; transition: width 1.5s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 0 12px rgba(0,255,136,0.3); }
+
+  /* Section titles */
   .dash-section { margin-bottom: 40px; }
-  .dash-section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; }
-  .dash-section-title::before { content: '//'; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
-
-  /* Orders table */
-  .orders-table { width: 100%; border-collapse: collapse; }
-  .orders-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; padding: 8px 12px; border-bottom: 1px solid var(--border); }
-  .orders-table td { padding: 14px 12px; border-bottom: 1px solid rgba(21,21,37,0.5); font-size: 14px; }
-  .orders-table tr { transition: background 0.2s; }
-  .orders-table tbody tr:hover { background: rgba(0,255,136,0.02); }
-  .order-num { font-family: 'JetBrains Mono', monospace; color: var(--electric); font-size: 13px; }
-  .status-badge {
-    display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 3px 10px;
-    border-radius: 20px;
-  }
-  .status-pending { color: var(--neon-blue); background: rgba(68,136,255,0.1); }
-  .status-paid, .status-processing { color: #ffaa00; background: rgba(255,170,0,0.1); }
-  .status-shipped { color: var(--electric-bright); background: rgba(0,255,136,0.08); }
-  .status-delivered { color: var(--electric); background: rgba(0,255,136,0.15); }
-  .status-cancelled { color: var(--neon-pink); background: rgba(255,68,170,0.1); }
+  .dash-section-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .dash-section-title::before { content: '//'; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 
   /* Points feed */
-  .points-feed { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
-  .points-feed::-webkit-scrollbar { width: 4px; }
-  .points-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  .points-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 16px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-size: 14px;
-  }
+  .points-feed { display: flex; flex-direction: column; gap: 8px; }
+  .points-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
   .points-item-desc { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
-  .points-amount { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 15px; }
+  .points-item-type { font-size: 14px; text-transform: capitalize; }
+  .points-amount { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; }
   .points-earned { color: var(--electric); }
   .points-spent { color: var(--neon-pink); }
 
   /* Quick actions */
   .quick-actions { display: flex; gap: 12px; flex-wrap: wrap; }
   .quick-btn {
-    padding: 12px 24px;
-    border-radius: 10px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    text-decoration: none;
-    display: inline-flex; align-items: center; gap: 8px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text);
+    padding: 13px 26px; border-radius: 10px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
   }
-  .quick-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-  .quick-btn.primary { background: var(--electric); color: var(--bg); border-color: var(--electric); }
-  .quick-btn.primary:hover { box-shadow: 0 0 25px rgba(0,255,136,0.3); }
+  .quick-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); border-color: rgba(0,255,136,0.2); }
+  .quick-btn.primary { background: var(--electric); color: var(--bg); border-color: var(--electric); font-weight: 700; }
+  .quick-btn.primary:hover { box-shadow: 0 0 25px rgba(0,255,136,0.35); border-color: var(--electric); }
 
-  /* Empty states */
-  .empty-state {
-    text-align: center; padding: 40px;
-    color: var(--text-dim); font-size: 14px;
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 14px;
+  /* Empty state */
+  .empty-state { text-align: center; padding: 60px 30px; color: var(--text-dim); font-size: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
+  .empty-state .pilly { margin-bottom: 16px; }
+
+  /* Skeleton */
+  .skeleton { background: linear-gradient(90deg, var(--card) 25%, rgba(21,21,37,0.8) 50%, var(--card) 75%); background-size: 200% 100%; animation: skelPulse 1.5s ease-in-out infinite; border-radius: 8px; }
+  @keyframes skelPulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .skel-card { height: 110px; border-radius: 14px; }
+
+  /* Coming soon stub for other tabs */
+  .tab-stub { text-align: center; padding: 80px 30px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
+
+  @media (max-width: 900px) {
+    .dash-hero-inner { grid-template-columns: 1fr; gap: 24px; }
+    .hero-bottle-wrap { width: 220px; height: 260px; margin: 0 auto; }
   }
-  .empty-state a { color: var(--electric); text-decoration: none; }
-
-  /* Dashboard nav */
-  .dash-nav { position: fixed; top: 0; width: 100%; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 16px 48px; background: rgba(3,3,6,0.92); border-bottom: 1px solid var(--border); backdrop-filter: blur(30px); }
-  .dash-nav-logo { height: 22px; opacity: 0.9; }
-  .dash-nav-right { display: flex; align-items: center; gap: 16px; }
-  .dash-nav-user {
-    font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-dim);
-  }
-  .dash-nav-logout {
-    font-size: 13px; color: var(--text-dim); text-decoration: none; cursor: pointer;
-    background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 6px;
-    font-family: 'Space Grotesk', sans-serif; transition: color 0.2s, border-color 0.2s;
-  }
-  .dash-nav-logout:hover { color: var(--neon-pink); border-color: rgba(255,68,170,0.3); }
-
-  /* Two column layout for bottom sections */
-  .dash-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-
-  /* Breathing glow on high-value points */
-  .breathing-glow { animation: breathGlow 3s ease-in-out infinite; }
-  @keyframes breathGlow { 0%, 100% { text-shadow: 0 0 15px rgba(119,51,255,0.3); } 50% { text-shadow: 0 0 30px rgba(119,51,255,0.6); } }
-
-  /* Loading skeleton */
-  .skeleton { background: linear-gradient(90deg, var(--card) 25%, rgba(21,21,37,0.8) 50%, var(--card) 75%); background-size: 200% 100%; animation: skeletonPulse 1.5s ease-in-out infinite; border-radius: 8px; }
-  @keyframes skeletonPulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-  .skeleton-card { height: 110px; border-radius: 14px; }
-  .skeleton-row { height: 52px; margin-bottom: 8px; }
-
   @media (max-width: 768px) {
-    .dash-page { padding: 90px 20px 40px; }
-    .dash-nav { padding: 14px 20px; }
+    .dash-nav, .dash-hero, .dash-tabs, .dash-main { padding-left: 20px; padding-right: 20px; }
+    .dash-hero { padding-top: 100px; padding-bottom: 40px; background-attachment: scroll; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    .dash-columns { grid-template-columns: 1fr; }
-    .quick-actions { flex-direction: column; }
+    .quick-actions { flex-direction: column; align-items: stretch; }
+    .quick-btn { justify-content: center; }
   }
   @media (max-width: 480px) {
     .stats-grid { grid-template-columns: 1fr; }
@@ -192,188 +178,234 @@
   </div>
 </nav>
 
-<div class="dash-page" id="dashContent">
-  <!-- Skeleton loading state -->
-  <div id="skeleton">
-    <div style="margin-bottom:40px;">
-      <div class="skeleton" style="width:300px;height:36px;margin-bottom:12px;"></div>
-      <div class="skeleton" style="width:200px;height:20px;"></div>
-    </div>
-    <div class="stats-grid">
-      <div class="skeleton skeleton-card"></div>
-      <div class="skeleton skeleton-card"></div>
-      <div class="skeleton skeleton-card"></div>
-      <div class="skeleton skeleton-card"></div>
-    </div>
-    <div class="skeleton skeleton-row"></div>
-    <div class="skeleton skeleton-row"></div>
-    <div class="skeleton skeleton-row"></div>
-  </div>
-
-  <!-- Real content (hidden until loaded) -->
-  <div id="dashReal" style="display:none;">
-    <div class="dash-welcome">
-      <h1 id="welcomeTitle"></h1>
+<!-- HERO -->
+<section class="dash-hero" id="dashHero">
+  <div class="dash-hero-inner">
+    <div class="dash-hero-copy">
+      <h1 id="welcomeTitle">welcome back.</h1>
+      <p class="dash-hero-sub">your aura dashboard. orders, points, loot — all in one place. lock in.</p>
       <div class="dash-meta">
-        <span class="uid-badge" id="uidBadge"></span>
-        <span class="tier-badge" id="tierBadge"></span>
+        <span class="uid-badge" id="uidBadge">UID-————</span>
+        <span class="tier-badge tier-starter" id="tierBadge">Starter</span>
       </div>
     </div>
+    <div class="hero-bottle-wrap">
+      <div class="hero-bottle-ring ring-1"></div>
+      <div class="hero-bottle-ring ring-2"></div>
+      <img src="/thapill-assets/hero-bottle-float.png" alt="thaPill bottle" class="hero-bottle-img" onerror="this.onerror=null;this.src='/thapill-assets/hero-bottle.png'">
+    </div>
+  </div>
+</section>
 
+<!-- TAB NAV -->
+<nav class="dash-tabs" id="dashTabs">
+  <button class="dash-tab active" data-tab="overview">Overview</button>
+  <button class="dash-tab" data-tab="shop">Shop</button>
+  <button class="dash-tab" data-tab="orders">Orders</button>
+  <button class="dash-tab" data-tab="wishlist">Wishlist</button>
+  <button class="dash-tab" data-tab="rewards">Rewards</button>
+</nav>
+
+<!-- MAIN -->
+<main class="dash-main">
+  <!-- OVERVIEW -->
+  <section class="tab-panel active" id="tab-overview">
     <div class="stats-grid" id="statsGrid">
-      <div class="stat-card" data-delay="0">
+      <div class="stat-card" data-stat="orders">
         <div class="stat-card-label">Total Orders</div>
-        <div class="stat-card-value" id="statOrders" data-target="0">0</div>
+        <div class="stat-card-value" id="statOrders">0</div>
       </div>
-      <div class="stat-card" data-delay="100">
+      <div class="stat-card" data-stat="points">
         <div class="stat-card-label">Points Balance</div>
-        <div class="stat-card-value points" id="statPoints" data-target="0">0</div>
+        <div class="stat-card-value points" id="statPoints">0</div>
+        <div class="stat-card-sub" id="statPointsSub">&pound;0.00 off your next order</div>
       </div>
-      <div class="stat-card" data-delay="200">
+      <div class="stat-card" data-stat="referrals">
         <div class="stat-card-label">Referrals</div>
-        <div class="stat-card-value" id="statReferrals" data-target="0">0</div>
+        <div class="stat-card-value" id="statReferrals">0</div>
       </div>
-      <div class="stat-card" data-delay="300">
-        <div class="stat-card-label">Subscription</div>
-        <div class="stat-card-value electric" id="statSub">—</div>
-        <div class="stat-card-sub" id="statSubLabel"></div>
+      <div class="stat-card" data-stat="wishlist">
+        <div class="stat-card-label">Wishlist</div>
+        <div class="stat-card-value electric" id="statWishlist">0</div>
       </div>
     </div>
 
-    <div class="dash-columns">
-      <div class="dash-section">
-        <div class="dash-section-title">Recent Orders</div>
-        <div id="ordersContainer"></div>
+    <div class="tier-progress-card">
+      <div class="tier-progress-head">
+        <div class="tier-progress-title">Tier Progress</div>
+        <div class="tier-progress-info" id="tierProgressInfo">—</div>
       </div>
-      <div class="dash-section">
-        <div class="dash-section-title">Points Activity</div>
-        <div id="pointsContainer"></div>
-      </div>
+      <div class="tier-track"><div class="tier-fill" id="tierFill"></div></div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">Points Activity</div>
+      <div id="pointsContainer"></div>
     </div>
 
     <div class="dash-section">
       <div class="dash-section-title">Quick Actions</div>
       <div class="quick-actions">
-        <a href="/#pricing" class="quick-btn primary">Order thaPill</a>
+        <button class="quick-btn primary" id="orderBtn">Order thaPill</button>
         <button class="quick-btn" id="shareRefBtn">Share Referral Link</button>
-        <a href="/rewards" class="quick-btn">View Rewards</a>
+        <button class="quick-btn" id="viewRewardsBtn">View Rewards</button>
       </div>
     </div>
-  </div>
-</div>
+  </section>
+
+  <!-- SHOP (stub) -->
+  <section class="tab-panel" id="tab-shop">
+    <div class="tab-stub">// shop // loading...</div>
+  </section>
+
+  <!-- ORDERS (stub) -->
+  <section class="tab-panel" id="tab-orders">
+    <div class="tab-stub">// orders // loading...</div>
+  </section>
+
+  <!-- WISHLIST (stub) -->
+  <section class="tab-panel" id="tab-wishlist">
+    <div class="tab-stub">// wishlist // loading...</div>
+  </section>
+
+  <!-- REWARDS (stub) -->
+  <section class="tab-panel" id="tab-rewards">
+    <div class="tab-stub">// rewards // loading...</div>
+  </section>
+</main>
+
+<script src="/js/pilly.js"></script>
+<script src="/js/cart.js"></script>
+<script src="/js/chat.js"></script>
+<script src="/js/toast.js"></script>
+<script src="/js/cursor.js"></script>
 
 <script>
 (function() {
+  let DASH = null;
+
   async function load() {
     try {
       const res = await fetch('/api/dashboard');
       if (res.status === 401) { window.location.href = '/login'; return; }
-      const data = await res.json();
-      render(data);
-    } catch {
-      document.getElementById('skeleton').innerHTML = '<div class="empty-state">Failed to load dashboard. <a href="/login">Try logging in again.</a></div>';
+      DASH = await res.json();
+      renderShell(DASH);
+      renderOverview(DASH);
+    } catch (err) {
+      console.error(err);
     }
   }
 
-  function render(data) {
-    const { user, stats, recentOrders, pointsHistory } = data;
-
+  function renderShell(d) {
+    const { user } = d;
     document.getElementById('navUser').textContent = user.email;
-    document.getElementById('skeleton').style.display = 'none';
-    document.getElementById('dashReal').style.display = 'block';
 
-    // Welcome
+    // Welcome scramble
     const titleEl = document.getElementById('welcomeTitle');
-    scramble(titleEl, 'Welcome back, ' + user.first_name);
+    scramble(titleEl, 'welcome back, ' + (user.first_name || 'friend') + '.');
 
-    document.getElementById('uidBadge').textContent = user.uid;
+    // UID + tier
+    document.getElementById('uidBadge').textContent = user.uid || ('UID-' + (user.id || '').toString().padStart(4,'0'));
+    const tierEl = document.getElementById('tierBadge');
+    const tierKey = user.tier || 'starter';
+    const tierLabel = tierKey === 'locked-in' ? 'Locked In' : (tierKey.charAt(0).toUpperCase() + tierKey.slice(1));
+    tierEl.textContent = tierLabel;
+    tierEl.className = 'tier-badge tier-' + tierKey;
 
-    const tierBadge = document.getElementById('tierBadge');
-    const tierName = user.tier === 'locked-in' ? 'Locked In' : user.tier.charAt(0).toUpperCase() + user.tier.slice(1);
-    tierBadge.textContent = tierName;
-    tierBadge.className = 'tier-badge tier-' + user.tier;
+    // Pilly march
+    if (window.Pilly && window.Pilly.marchAcross) {
+      window.Pilly.marchAcross(document.getElementById('dashHero'), { size: 60, duration: 14, bottom: 16, zIndex: 3 });
+    }
+  }
 
-    // Stats with count-up
+  function renderOverview(d) {
+    const { stats, pointsHistory } = d;
+
     animateCount('statOrders', stats.totalOrders);
     animateCount('statPoints', stats.pointsBalance);
     animateCount('statReferrals', stats.referrals);
+    animateCount('statWishlist', stats.wishlistCount || 0);
+    document.getElementById('statPointsSub').textContent = '= £' + ((stats.pointsBalance || 0) / 100).toFixed(2) + ' off your next order';
 
-    const pointsEl = document.getElementById('statPoints');
-    if (stats.pointsBalance >= 500) pointsEl.classList.add('breathing-glow');
+    if ((stats.pointsBalance || 0) >= 500) document.getElementById('statPoints').classList.add('breathing-glow');
 
-    const subEl = document.getElementById('statSub');
-    const subLabel = document.getElementById('statSubLabel');
-    if (stats.hasActiveSubscription) {
-      subEl.textContent = 'Active';
-      subLabel.textContent = 'Locked in monthly';
+    // Reveal stagger
+    document.querySelectorAll('#statsGrid .stat-card').forEach((c, i) => setTimeout(() => c.classList.add('visible'), 80 + i * 110));
+
+    // Tier progress
+    const info = document.getElementById('tierProgressInfo');
+    const fill = document.getElementById('tierFill');
+    const lifetime = stats.lifetimeEarned || 0;
+    const next = stats.nextTierThreshold || 0;
+    const curr = stats.currentTierThreshold || 0;
+    if (stats.nextTierName && next > curr) {
+      const pct = Math.min(100, Math.round(((lifetime - curr) / (next - curr)) * 100));
+      const remain = Math.max(0, next - lifetime);
+      const niceName = stats.nextTierName === 'locked-in' ? 'Locked In' : stats.nextTierName.charAt(0).toUpperCase() + stats.nextTierName.slice(1);
+      info.innerHTML = '<span class="pts">' + remain.toLocaleString() + '</span> pts to <span class="name">' + niceName + '</span>';
+      setTimeout(() => { fill.style.width = pct + '%'; }, 150);
     } else {
-      subEl.textContent = '—';
-      subEl.style.color = 'var(--text-dim)';
-      subLabel.textContent = 'No active plan';
+      info.innerHTML = '<span class="name">max tier unlocked.</span> aura fully farmed.';
+      setTimeout(() => { fill.style.width = '100%'; }, 150);
     }
 
-    // Stagger card reveal
-    document.querySelectorAll('.stat-card').forEach((card, i) => {
-      setTimeout(() => card.classList.add('visible'), 100 + i * 120);
-    });
-
-    // Orders
-    const ordersEl = document.getElementById('ordersContainer');
-    if (recentOrders.length === 0) {
-      ordersEl.innerHTML = '<div class="empty-state">No orders yet. <a href="/#pricing">Get your first bottle.</a></div>';
-    } else {
-      let html = '<table class="orders-table"><thead><tr><th>Order</th><th>Date</th><th>Status</th><th>Total</th></tr></thead><tbody>';
-      for (const o of recentOrders) {
-        const date = new Date(o.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        const total = '£' + (o.total_pence / 100).toFixed(2);
-        html += '<tr><td><span class="order-num">' + o.order_number + '</span></td><td>' + date + '</td><td><span class="status-badge status-' + o.status + '">' + o.status + '</span></td><td>' + total + '</td></tr>';
-      }
-      html += '</tbody></table>';
-      ordersEl.innerHTML = html;
-    }
-
-    // Points
-    const pointsContEl = document.getElementById('pointsContainer');
-    if (pointsHistory.length === 0) {
-      pointsContEl.innerHTML = '<div class="empty-state">No points activity yet.</div>';
+    // Points feed
+    const feed = document.getElementById('pointsContainer');
+    if (!pointsHistory || pointsHistory.length === 0) {
+      feed.innerHTML = '<div class="empty-state">No points activity yet. Lock in to start earning.</div>';
     } else {
       let html = '<div class="points-feed">';
       for (const p of pointsHistory) {
-        const isPositive = p.amount > 0;
-        const sign = isPositive ? '+' : '';
-        const cls = isPositive ? 'points-earned' : 'points-spent';
+        const pos = p.amount > 0;
+        const sign = pos ? '+' : '';
+        const cls = pos ? 'points-earned' : 'points-spent';
         const date = new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        html += '<div class="points-item"><div><div>' + p.type + '</div><div class="points-item-desc">' + (p.description || '') + ' · ' + date + '</div></div><div class="points-amount ' + cls + '">' + sign + p.amount + '</div></div>';
+        html += '<div class="points-item"><div><div class="points-item-type">' + (p.type || '') + '</div><div class="points-item-desc">' + (p.description || '') + ' · ' + date + '</div></div><div class="points-amount ' + cls + '">' + sign + p.amount + '</div></div>';
       }
       html += '</div>';
-      pointsContEl.innerHTML = html;
+      feed.innerHTML = html;
     }
 
-    // Referral share
+    // Quick actions
+    document.getElementById('orderBtn').addEventListener('click', () => switchTab('shop'));
+    document.getElementById('viewRewardsBtn').addEventListener('click', () => switchTab('rewards'));
     document.getElementById('shareRefBtn').addEventListener('click', () => {
-      const link = window.location.origin + '/?ref=' + user.referral_code;
+      const link = d.referral_link || (window.location.origin + '/?ref=' + (d.user.referral_code || ''));
       navigator.clipboard.writeText(link).then(() => {
         const btn = document.getElementById('shareRefBtn');
+        const orig = btn.textContent;
         btn.textContent = 'Copied!';
         btn.style.borderColor = 'var(--electric)';
         btn.style.color = 'var(--electric)';
-        setTimeout(() => { btn.textContent = 'Share Referral Link'; btn.style.borderColor = ''; btn.style.color = ''; }, 2000);
+        if (window.Pilly && window.Pilly.popUpAt) window.Pilly.popUpAt(btn, { variant: 'happy', size: 42 });
+        setTimeout(() => { btn.textContent = orig; btn.style.borderColor = ''; btn.style.color = ''; }, 2000);
       });
     });
   }
 
-  // Count-up animation
+  // Tab switching
+  function switchTab(name) {
+    document.querySelectorAll('.dash-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+    window.scrollTo({ top: document.querySelector('.dash-tabs').offsetTop - 60, behavior: 'smooth' });
+  }
+  document.querySelectorAll('.dash-tab').forEach(t => {
+    t.addEventListener('click', () => switchTab(t.dataset.tab));
+  });
+
+  // Count-up
   function animateCount(id, target) {
     const el = document.getElementById(id);
-    if (!target) { el.textContent = '0'; return; }
+    if (!el) return;
+    const t = Number(target) || 0;
+    if (!t) { el.textContent = '0'; return; }
     const duration = 1200;
     const start = performance.now();
     function tick(now) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      el.textContent = Math.round(eased * target).toLocaleString();
-      if (progress < 1) requestAnimationFrame(tick);
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(eased * t).toLocaleString();
+      if (p < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
   }
@@ -391,18 +423,18 @@
       el.textContent = out;
       frame++;
       if (frame > len * 2 + 4) { el.textContent = final; clearInterval(interval); }
-    }, 25);
+    }, 22);
   }
 
   // 3D tilt on stat cards
   document.addEventListener('mousemove', (e) => {
-    document.querySelectorAll('.stat-card').forEach((card) => {
-      const rect = card.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      const dist = Math.sqrt(Math.pow(e.clientX - (rect.left + rect.width/2), 2) + Math.pow(e.clientY - (rect.top + rect.height/2), 2));
-      if (dist < 300) {
-        card.style.transform = 'translateY(-2px) perspective(600px) rotateX(' + (-y * 8) + 'deg) rotateY(' + (x * 8) + 'deg)';
+    document.querySelectorAll('#statsGrid .stat-card').forEach((card) => {
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      const dist = Math.hypot(e.clientX - (r.left + r.width/2), e.clientY - (r.top + r.height/2));
+      if (dist < 280) {
+        card.style.transform = 'perspective(700px) rotateX(' + (-y * 6) + 'deg) rotateY(' + (x * 6) + 'deg) translateY(-2px)';
       } else {
         card.style.transform = '';
       }
@@ -418,9 +450,5 @@
   load();
 })();
 </script>
-<script src="/js/cart.js"></script>
-<script src="/js/chat.js"></script>
-<script src="/js/toast.js"></script>
-<script src="/js/cursor.js"></script>
 </body>
 </html>
