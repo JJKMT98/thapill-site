@@ -289,11 +289,16 @@
 
     function renderList(filter = '') {
       const q = filter.trim().toLowerCase();
+      const digits = q.replace(/\D/g, '');
       const rows = list.filter((c) => {
         const d = dial[c.code] || '';
         if (!d) return false;
         if (!q) return true;
-        return c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || d.includes(q.replace(/\D/g, ''));
+        if (c.name.toLowerCase().includes(q)) return true;
+        if (c.code.toLowerCase().includes(q)) return true;
+        // Only match against dial code when the user actually typed a digit
+        if (digits && d.includes(digits)) return true;
+        return false;
       });
       if (!rows.length) {
         listEl.innerHTML = `<div class="country-picker-empty">No match</div>`;
