@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>THAPILL — Admin</title>
-<link rel="icon" type="image/png" sizes="32x32" href="thapill-assets/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="alternate icon" type="image/png" sizes="32x32" href="/thapill-assets/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/thapill-assets/apple-touch-icon.png">
 <link rel="stylesheet" href="css/style.css">
 <style>
   .admin-page { min-height: 100vh; padding: 100px 48px 60px; max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
@@ -64,6 +66,7 @@
     <a href="#" data-tab="users">Users</a>
     <a href="#" data-tab="visitors">Visitors</a>
     <a href="#" data-tab="products">Products</a>
+    <a href="#" data-tab="shipping">Shipping</a>
     <a href="#" data-tab="chat">Chat</a>
   </div>
 </nav>
@@ -112,6 +115,47 @@
     <table class="admin-table"><thead><tr><th>Name</th><th>Slug</th><th>Price</th><th>Type</th><th>Stock</th><th>Active</th></tr></thead><tbody id="productRows"></tbody></table>
   </div>
 
+  <!-- Shipping -->
+  <div class="admin-section" id="sec-shipping">
+    <div class="section-title">Shipping Rules</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;">
+      Row with country code <code style="font-family:monospace;color:var(--electric);">DEFAULT</code> is the fallback for any country without a specific rule. Mark a country as <strong style="color:var(--neon-pink);">Blocked</strong> to stop checkout from that country and show a waitlist gate on the landing page.
+    </p>
+    <table class="admin-table" style="margin-bottom:24px;">
+      <thead><tr><th>Code</th><th>Name</th><th>Price</th><th>Blocked</th><th>Message</th><th></th></tr></thead>
+      <tbody id="shippingRows"></tbody>
+    </table>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <div class="section-title" style="font-size:14px;">Add / update rule</div>
+      <form id="shippingForm" style="display:grid;grid-template-columns:110px 1fr 130px 110px 1fr auto;gap:10px;align-items:end;">
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Country code</label>
+          <input name="country" required maxlength="7" placeholder="US or DEFAULT" style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:monospace;text-transform:uppercase;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Name</label>
+          <input name="country_name" placeholder="United States" style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Price (pence)</label>
+          <input name="price_pence" type="number" min="0" value="0" style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:monospace;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Blocked</label>
+          <select name="blocked" style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:monospace;display:block;margin-bottom:4px;">Custom message (optional)</label>
+          <input name="message" placeholder="Leave blank for default copy" style="width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+        </div>
+        <button type="submit" style="padding:11px 18px;background:var(--electric);color:var(--bg);border:none;border-radius:6px;font-family:inherit;font-weight:600;cursor:pointer;">Save</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Chat -->
   <div class="admin-section" id="sec-chat">
     <div class="section-title">Live Chat</div>
@@ -138,6 +182,7 @@
       if (a.dataset.tab === 'users') loadUsers();
       if (a.dataset.tab === 'visitors') loadVisitors();
       if (a.dataset.tab === 'products') loadProducts();
+      if (a.dataset.tab === 'shipping') loadShipping();
       if (a.dataset.tab === 'chat') loadChatRooms();
     });
   });
@@ -246,6 +291,76 @@
       `<tr><td>${p.name}</td><td style="font-family:monospace;">${p.slug}</td><td>${fmt(p.price_pence)}</td><td>${p.type}</td><td>${p.stock}</td><td>${p.active ? '✓' : '✗'}</td></tr>`
     ).join('');
   }
+
+  // Shipping
+  async function loadShipping() {
+    const res = await fetch('/api/admin/shipping');
+    const d = await res.json();
+    const rows = d.rules || [];
+    const tbody = document.getElementById('shippingRows');
+    tbody.innerHTML = rows.map(r => {
+      const price = r.price_pence > 0 ? fmt(r.price_pence) : '<span style="color:var(--electric);">Free</span>';
+      const blocked = r.blocked ? '<span style="color:var(--neon-pink);font-weight:700;">Blocked</span>' : '<span style="color:var(--text-dim);">—</span>';
+      const deletable = r.country !== 'DEFAULT';
+      return `<tr>
+        <td style="font-family:monospace;color:var(--electric);">${r.country}</td>
+        <td>${r.country_name || '—'}</td>
+        <td>${price}</td>
+        <td>${blocked}</td>
+        <td style="font-size:12px;color:var(--text-dim);">${r.message || '—'}</td>
+        <td>
+          <button data-edit-ship="${r.country}" style="background:none;border:1px solid var(--border);color:var(--text-dim);font-size:11px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;">Edit</button>
+          ${deletable ? `<button data-del-ship="${r.country}" style="background:none;border:1px solid rgba(255,68,170,0.3);color:var(--neon-pink);font-size:11px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;margin-left:4px;">Delete</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);">No shipping rules yet</td></tr>';
+
+    tbody.querySelectorAll('[data-edit-ship]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rule = rows.find(r => r.country === btn.dataset.editShip);
+        if (!rule) return;
+        const f = document.getElementById('shippingForm');
+        f.country.value = rule.country;
+        f.country_name.value = rule.country_name || '';
+        f.price_pence.value = rule.price_pence;
+        f.blocked.value = rule.blocked ? '1' : '0';
+        f.message.value = rule.message || '';
+        f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+    tbody.querySelectorAll('[data-del-ship]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete shipping rule for ' + btn.dataset.delShip + '?')) return;
+        await fetch('/api/admin/shipping/' + btn.dataset.delShip, { method: 'DELETE' });
+        loadShipping();
+      });
+    });
+  }
+
+  document.getElementById('shippingForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const payload = {
+      country_name: form.country_name.value.trim() || null,
+      price_pence: Number(form.price_pence.value) || 0,
+      blocked: Number(form.blocked.value) ? 1 : 0,
+      message: form.message.value.trim() || null,
+    };
+    const code = form.country.value.trim().toUpperCase();
+    const res = await fetch('/api/admin/shipping/' + encodeURIComponent(code), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      form.reset();
+      form.price_pence.value = 0;
+      loadShipping();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'Could not save rule');
+    }
+  });
 
   // Chat
   async function loadChatRooms() {

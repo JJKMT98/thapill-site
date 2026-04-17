@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Transparent background (no rect). Just the pill capsule. -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Capsule rotated -45°, centered at (32,32) -->
+  <g transform="rotate(-45 32 32)" filter="url(#glow)">
+    <!-- Left half (electric green) -->
+    <path d="M 10 24 h 22 v 16 h -22 a 8 8 0 0 1 0 -16 z" fill="#00ff88"/>
+    <!-- Right half (brighter green) -->
+    <path d="M 32 24 h 22 a 8 8 0 0 1 0 16 h -22 z" fill="#66ffbb"/>
+    <!-- Seam -->
+    <line x1="32" y1="24" x2="32" y2="40" stroke="#030306" stroke-width="1.5" opacity="0.5"/>
+    <!-- Highlight -->
+    <rect x="14" y="26" width="36" height="2" rx="1" fill="#ffffff" opacity="0.4"/>
+  </g>
+</svg>
