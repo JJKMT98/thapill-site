@@ -291,6 +291,65 @@
   .wish-btn-add:hover { transform: translateY(-1px); box-shadow: 0 0 22px rgba(0,255,136,0.4); }
   .wish-btn-add.added { background: var(--neon-purple); border-color: var(--neon-purple); }
 
+  /* Rewards tab */
+  .rw-head { margin-bottom: 28px; }
+  .rw-head h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .rw-head p { color: var(--text-dim); font-size: 14px; }
+  .rw-balance { text-align: center; margin-bottom: 44px; padding: 36px 20px; background: radial-gradient(circle at center, rgba(119,51,255,0.08) 0%, transparent 70%); border-radius: 20px; }
+  .rw-balance-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace; margin-bottom: 10px; }
+  .rw-balance-val { font-family: 'JetBrains Mono', monospace; font-size: 72px; font-weight: 700; color: var(--neon-purple); line-height: 1; animation: breathPurple 3.5s ease-in-out infinite; }
+  @keyframes breathPurple { 0%,100% { text-shadow: 0 0 20px rgba(119,51,255,0.3); } 50% { text-shadow: 0 0 50px rgba(119,51,255,0.7); } }
+  .rw-balance-equiv { color: var(--text-dim); font-size: 14px; margin-top: 10px; }
+  .rw-balance-equiv span { color: var(--electric); font-family: 'JetBrains Mono', monospace; }
+
+  .rw-section-label { font-size: 13px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; letter-spacing: 1px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); }
+  .rw-section-label::before { content: '//'; color: var(--text-dim); }
+
+  .rw-tier-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 36px; }
+  .rw-tier-labels { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .rw-tier-label { font-size: 11px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
+  .rw-tier-label.active { color: var(--electric); font-weight: 700; }
+  .rw-tier-label.dim { color: var(--text-dim); }
+  .rw-tier-track { height: 8px; background: var(--surface); border-radius: 4px; overflow: hidden; position: relative; margin-bottom: 14px; }
+  .rw-tier-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--electric), var(--neon-purple)); width: 0; transition: width 1.5s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 0 12px rgba(119,51,255,0.35); }
+  .rw-tier-dot { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid var(--bg); }
+  .rw-tier-dot.reached { background: var(--electric); box-shadow: 0 0 10px rgba(0,255,136,0.6); }
+  .rw-tier-dot.future { background: var(--border); }
+  .rw-tier-info { font-size: 13px; color: var(--text-dim); }
+  .rw-tier-info .pts { color: var(--neon-purple); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+  .rw-earn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 36px; }
+  .rw-earn-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; justify-content: space-between; align-items: center; transition: border-color 0.3s; }
+  .rw-earn-card.completed { border-color: rgba(0,255,136,0.25); background: linear-gradient(180deg, var(--card) 0%, rgba(0,255,136,0.03) 100%); }
+  .rw-earn-card.available { animation: earnPulse 3s ease-in-out infinite; }
+  @keyframes earnPulse { 0%,100% { border-color: var(--border); } 50% { border-color: rgba(0,255,136,0.18); } }
+  .rw-earn-label { font-size: 14px; font-weight: 500; }
+  .rw-earn-status { font-size: 10px; color: var(--electric); font-family: 'JetBrains Mono', monospace; margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  .rw-earn-pts { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; color: var(--neon-purple); }
+  .rw-earn-pts .check { color: var(--electric); }
+
+  .rw-redeem { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 26px; margin-bottom: 36px; }
+  .rw-redeem-row { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+  .rw-redeem-slider { flex: 1; min-width: 220px; }
+  .rw-redeem-slider input[type=range] { width: 100%; -webkit-appearance: none; appearance: none; height: 6px; background: var(--surface); border-radius: 3px; outline: none; margin-top: 10px; }
+  .rw-redeem-slider input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--neon-purple); cursor: pointer; box-shadow: 0 0 10px rgba(119,51,255,0.6); border: none; }
+  .rw-redeem-slider input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--neon-purple); cursor: pointer; box-shadow: 0 0 10px rgba(119,51,255,0.6); border: none; }
+  .rw-redeem-slider label { font-size: 12px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
+  .rw-redeem-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
+  .rw-redeem-output { text-align: center; min-width: 140px; }
+  .rw-redeem-pts { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; color: var(--neon-purple); }
+  .rw-redeem-val { font-size: 13px; color: var(--electric); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+
+  .rw-history { display: flex; flex-direction: column; gap: 8px; }
+  .rw-history-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; position: relative; padding-left: 30px; }
+  .rw-history-item::before { content: ''; position: absolute; left: 14px; top: 50%; width: 8px; height: 8px; border-radius: 50%; transform: translateY(-50%); background: var(--electric); box-shadow: 0 0 8px rgba(0,255,136,0.5); }
+  .rw-history-item.negative::before { background: var(--neon-pink); box-shadow: 0 0 8px rgba(255,68,170,0.5); }
+  .rw-history-type { font-size: 14px; text-transform: capitalize; }
+  .rw-history-desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .rw-history-amt { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; }
+  .rw-history-amt.positive { color: var(--electric); }
+  .rw-history-amt.negative { color: var(--neon-pink); }
+
   @media (max-width: 900px) {
     .dash-hero-inner { grid-template-columns: 1fr; gap: 24px; }
     .hero-bottle-wrap { width: 220px; height: 260px; margin: 0 auto; }
@@ -423,9 +482,13 @@
     <div id="wishContainer"></div>
   </section>
 
-  <!-- REWARDS (stub) -->
+  <!-- REWARDS -->
   <section class="tab-panel" id="tab-rewards">
-    <div class="tab-stub">// rewards // loading...</div>
+    <div class="rw-head">
+      <h2>rewards.</h2>
+      <p>farm your aura. earn points. redeem the loot.</p>
+    </div>
+    <div id="rewardsContainer"><div class="tab-stub">// loading rewards...</div></div>
   </section>
 </main>
 
@@ -440,7 +503,7 @@
   let DASH = null;
   let PRODUCTS = null;
   let WISH_IDS = new Set();
-  const loaded = { shop: false, orders: false, wishlist: false };
+  const loaded = { shop: false, orders: false, wishlist: false, rewards: false };
   let WISH_ITEMS = [];
 
   async function load() {
@@ -542,6 +605,126 @@
     });
   }
 
+  // ── Rewards ───────────────────────────────────────────────
+  async function loadRewards() {
+    const el = document.getElementById('rewardsContainer');
+    try {
+      const [rRes, hRes] = await Promise.all([fetch('/api/rewards'), fetch('/api/rewards/history')]);
+      if (!rRes.ok) throw 0;
+      const data = await rRes.json();
+      const hData = hRes.ok ? await hRes.json() : { history: [] };
+      renderRewards(data, hData.history || []);
+    } catch {
+      el.innerHTML = '<div class="empty-state">Failed to load rewards.</div>';
+    }
+  }
+
+  function renderRewards(data, history) {
+    const el = document.getElementById('rewardsContainer');
+    const tiers = data.tiers || [];
+    const maxThreshold = tiers.length ? tiers[tiers.length - 1].threshold : 5000;
+
+    const tierLabels = tiers.map(t => {
+      const active = data.currentTier && t.name === data.currentTier.name;
+      return `<span class="rw-tier-label ${active ? 'active' : 'dim'}">${t.label}</span>`;
+    }).join('');
+    const tierDots = tiers.map((t, i) => {
+      if (i === 0) return '';
+      const pct = (t.threshold / maxThreshold) * 100;
+      const cls = data.lifetimeEarned >= t.threshold ? 'reached' : 'future';
+      return `<div class="rw-tier-dot ${cls}" style="left:${pct}%"></div>`;
+    }).join('');
+    const fillPct = data.nextTier ? Math.min(100, (data.lifetimeEarned / maxThreshold) * 100) : 100;
+    const tierInfo = data.nextTier
+      ? `<span class="pts">${(data.pointsToNextTier || 0).toLocaleString()}</span> pts to ${data.nextTier.label}`
+      : `<span class="pts">max tier.</span> aura fully farmed.`;
+
+    const earnGrid = (data.actions || []).map(a => `
+      <div class="rw-earn-card ${a.completed ? 'completed' : 'available'}">
+        <div>
+          <div class="rw-earn-label">${a.label}</div>
+          <div class="rw-earn-status">${a.completed ? '✓ Done' : 'Available'}</div>
+        </div>
+        <div class="rw-earn-pts">${a.completed ? '<span class="check">✓</span>' : '+' + a.points}</div>
+      </div>`).join('');
+
+    const historyHtml = history.length
+      ? history.map(h => {
+          const pos = h.amount > 0;
+          const sign = pos ? '+' : '';
+          const cls = pos ? 'positive' : 'negative';
+          const date = new Date(h.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          return `<div class="rw-history-item ${pos ? '' : 'negative'}">
+            <div><div class="rw-history-type">${h.type}</div><div class="rw-history-desc">${h.description || ''} · ${date}</div></div>
+            <div class="rw-history-amt ${cls}">${sign}${h.amount}</div>
+          </div>`;
+        }).join('')
+      : '<div class="empty-state">No activity yet.</div>';
+
+    el.innerHTML = `
+      <div class="rw-balance">
+        <div class="rw-balance-label">Points Balance</div>
+        <div class="rw-balance-val" id="rwBalanceVal">0</div>
+        <div class="rw-balance-equiv">= <span id="rwBalanceEquiv">£0.00</span> off your next order</div>
+      </div>
+
+      <div class="rw-section-label">Tier Progress</div>
+      <div class="rw-tier-card">
+        <div class="rw-tier-labels">${tierLabels}</div>
+        <div class="rw-tier-track" id="rwTrack"><div class="rw-tier-fill" id="rwFill"></div>${tierDots}</div>
+        <div class="rw-tier-info">${tierInfo}</div>
+      </div>
+
+      <div class="rw-section-label">Ways to Earn</div>
+      <div class="rw-earn-grid">${earnGrid}</div>
+
+      <div class="rw-section-label">Redemption Calculator</div>
+      <div class="rw-redeem">
+        <div class="rw-redeem-row">
+          <div class="rw-redeem-slider">
+            <label>Drag to see discount value</label>
+            <input type="range" id="rwSlider" min="0" max="${data.balance}" value="0" step="50">
+            <div class="rw-redeem-labels"><span>0 pts</span><span>${(data.balance || 0).toLocaleString()} pts</span></div>
+          </div>
+          <div class="rw-redeem-output">
+            <div class="rw-redeem-pts" id="rwSlideP">0 pts</div>
+            <div class="rw-redeem-val">= <span id="rwSlideV">£0.00</span> off</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rw-section-label">Points History</div>
+      <div class="rw-history">${historyHtml}</div>
+    `;
+
+    animateCountEl(document.getElementById('rwBalanceVal'), data.balance || 0);
+    document.getElementById('rwBalanceEquiv').textContent = '£' + ((data.balance || 0) / 100).toFixed(2);
+    setTimeout(() => { document.getElementById('rwFill').style.width = fillPct + '%'; }, 150);
+
+    const slider = document.getElementById('rwSlider');
+    const sp = document.getElementById('rwSlideP');
+    const sv = document.getElementById('rwSlideV');
+    slider.addEventListener('input', () => {
+      const v = Number(slider.value);
+      sp.textContent = v.toLocaleString() + ' pts';
+      sv.textContent = '£' + (v / 100).toFixed(2);
+    });
+  }
+
+  function animateCountEl(el, target) {
+    if (!el) return;
+    const t = Number(target) || 0;
+    if (!t) { el.textContent = '0'; return; }
+    const duration = 1400;
+    const start = performance.now();
+    function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      el.textContent = Math.round((1 - Math.pow(1 - p, 3)) * t).toLocaleString();
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
   // Tab switching
   function switchTab(name) {
     document.querySelectorAll('.dash-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
@@ -550,6 +733,7 @@
     if (name === 'shop' && !loaded.shop) { loadShop(); loaded.shop = true; }
     if (name === 'orders' && !loaded.orders) { renderOrders(); loaded.orders = true; }
     if (name === 'wishlist') { loadWishlist(); loaded.wishlist = true; }
+    if (name === 'rewards' && !loaded.rewards) { loadRewards(); loaded.rewards = true; }
   }
   document.querySelectorAll('.dash-tab').forEach(t => {
     t.addEventListener('click', () => switchTab(t.dataset.tab));
