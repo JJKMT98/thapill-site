@@ -8,10 +8,15 @@ module.exports = {
 
   async create(data) {
     const row = await one(
-      `INSERT INTO users (uid, email, password_hash, first_name, last_name, phone, referral_code, referred_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO users (uid, email, password_hash, first_name, last_name, phone,
+                          referral_code, referred_by, country, city, region, ip_address,
+                          user_agent, signup_source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING *`,
-      [data.uid, data.email, data.password_hash, data.first_name, data.last_name, data.phone, data.referral_code, data.referred_by]
+      [data.uid, data.email, data.password_hash, data.first_name, data.last_name, data.phone,
+       data.referral_code, data.referred_by, data.country || null, data.city || null,
+       data.region || null, data.ip_address || null, data.user_agent || null,
+       data.signup_source || null]
     );
     return row;
   },
@@ -34,7 +39,33 @@ module.exports = {
 
   list: (limit = 50, offset = 0) =>
     many(
-      'SELECT id, uid, email, first_name, last_name, tier, points_balance, created_at FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+      `SELECT u.id, u.uid, u.email, u.first_name, u.last_name, u.phone, u.tier,
+              u.points_balance, u.country, u.city, u.region, u.ip_address, u.signup_source,
+              u.created_at,
+              COALESCE(o.paid_orders, 0)::int AS paid_orders,
+              COALESCE(o.total_spent_pence, 0)::int AS total_spent_pence,
+              o.last_order_at,
+              CASE WHEN COALESCE(o.paid_orders, 0) > 0 THEN 'customer' ELSE 'lead' END AS status
+       FROM users u
+       LEFT JOIN (
+         SELECT user_id,
+                COUNT(*) FILTER (WHERE status IN ('paid','processing','shipped','delivered')) AS paid_orders,
+                SUM(total_pence) FILTER (WHERE status NOT IN ('pending','cancelled')) AS total_spent_pence,
+                MAX(created_at) AS last_order_at
+         FROM orders WHERE user_id IS NOT NULL GROUP BY user_id
+       ) o ON o.user_id = u.id
+       ORDER BY u.created_at DESC LIMIT $1 OFFSET $2`,
       [limit, offset]
     ),
+
+  countByStatus: (status) => {
+    if (status === 'customer') {
+      return one(`SELECT COUNT(DISTINCT u.id)::int AS c FROM users u
+                  JOIN orders o ON o.user_id = u.id
+                  WHERE o.status IN ('paid','processing','shipped','delivered')`);
+    }
+    return one(`SELECT COUNT(*)::int AS c FROM users u
+                WHERE NOT EXISTS (SELECT 1 FROM orders o
+                  WHERE o.user_id = u.id AND o.status IN ('paid','processing','shipped','delivered'))`);
+  },
 };

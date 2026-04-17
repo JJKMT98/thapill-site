@@ -60,11 +60,12 @@ describe('Auth', () => {
   let cookie;
 
   test('register creates user with UID and points', async () => {
-    const res = await req('POST', '/api/auth/register', { email: 'test@test.com', password: 'testpass123', first_name: 'Test', last_name: 'User' });
+    const res = await req('POST', '/api/auth/register', { email: 'test@test.com', password: 'testpass123', first_name: 'Test', last_name: 'User', phone: '+447000000001', country: 'GB' });
     assert.strictEqual(res.status, 201);
     assert.ok(res.body.user.uid.startsWith('TP-'));
     assert.strictEqual(res.body.user.points_balance, 100);
     assert.ok(res.body.user.referral_code);
+    assert.strictEqual(res.body.user.country, 'GB');
     cookie = extractCookie(res.cookie);
   });
 
@@ -80,7 +81,7 @@ describe('Auth', () => {
   });
 
   test('duplicate registration returns 409', async () => {
-    const res = await req('POST', '/api/auth/register', { email: 'test@test.com', password: 'testpass123', first_name: 'A', last_name: 'B' });
+    const res = await req('POST', '/api/auth/register', { email: 'test@test.com', password: 'testpass123', first_name: 'A', last_name: 'B', phone: '+447000000002', country: 'GB' });
     assert.strictEqual(res.status, 409);
   });
 
@@ -138,7 +139,7 @@ describe('Checkout', () => {
   let cookie;
 
   test('authenticated checkout creates order', async () => {
-    const reg = await req('POST', '/api/auth/register', { email: 'buyer@test.com', password: 'testpass123', first_name: 'Buyer', last_name: 'X' });
+    const reg = await req('POST', '/api/auth/register', { email: 'buyer@test.com', password: 'testpass123', first_name: 'Buyer', last_name: 'X', phone: '+447000000003', country: 'GB' });
     cookie = extractCookie(reg.cookie);
 
     await req('POST', '/api/cart/add', { product_id: 2 }, cookie);

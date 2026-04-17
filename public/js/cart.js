@@ -224,13 +224,21 @@
   // Public API
   window.thaPillCart = {
     open, close, refresh,
-    async add(productId, qty = 1) {
+    async add(ref, qty = 1) {
+      const payload = { quantity: qty };
+      if (typeof ref === 'object' && ref) {
+        if (ref.slug) payload.slug = ref.slug;
+        if (ref.product_id) payload.product_id = ref.product_id;
+      } else {
+        payload.product_id = Number(ref);
+      }
+
       let res;
       try {
         res = await fetch('/api/cart/add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product_id: productId, quantity: qty }),
+          body: JSON.stringify(payload),
         });
       } catch (e) {
         throw new Error('Network error — please try again');

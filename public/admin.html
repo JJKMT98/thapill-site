@@ -62,6 +62,7 @@
     <a href="#" data-tab="dashboard" class="active">Dashboard</a>
     <a href="#" data-tab="orders">Orders</a>
     <a href="#" data-tab="users">Users</a>
+    <a href="#" data-tab="visitors">Visitors</a>
     <a href="#" data-tab="products">Products</a>
     <a href="#" data-tab="chat">Chat</a>
   </div>
@@ -90,7 +91,19 @@
   <!-- Users -->
   <div class="admin-section" id="sec-users">
     <div class="section-title">Users</div>
-    <table class="admin-table"><thead><tr><th>UID</th><th>Name</th><th>Email</th><th>Tier</th><th>Points</th><th>Joined</th></tr></thead><tbody id="userRows"></tbody></table>
+    <div class="filter-row" id="userFilters">
+      <button class="filter-btn active" data-user-status="">All</button>
+      <button class="filter-btn" data-user-status="lead">Leads</button>
+      <button class="filter-btn" data-user-status="customer">Customers</button>
+    </div>
+    <table class="admin-table"><thead><tr><th>UID</th><th>Name</th><th>Email</th><th>Phone</th><th>Country</th><th>Status</th><th>Orders</th><th>Spent</th><th>Points</th><th>Joined</th></tr></thead><tbody id="userRows"></tbody></table>
+  </div>
+
+  <!-- Visitors -->
+  <div class="admin-section" id="sec-visitors">
+    <div class="section-title">Visitors</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;">Anonymous visits (sessions). Shows country + IP captured on first visit.</p>
+    <table class="admin-table"><thead><tr><th>When</th><th>Country</th><th>City</th><th>IP</th><th>Referrer</th><th>Became</th></tr></thead><tbody id="visitorRows"></tbody></table>
   </div>
 
   <!-- Products -->
@@ -123,6 +136,7 @@
       a.classList.add('active');
       if (a.dataset.tab === 'orders') loadOrders();
       if (a.dataset.tab === 'users') loadUsers();
+      if (a.dataset.tab === 'visitors') loadVisitors();
       if (a.dataset.tab === 'products') loadProducts();
       if (a.dataset.tab === 'chat') loadChatRooms();
     });
@@ -134,11 +148,12 @@
     if (res.status === 401 || res.status === 403) { window.location.href = '/login'; return; }
     const d = await res.json();
     document.getElementById('adminStats').innerHTML = [
-      { label: 'Total Orders', val: d.totalOrders },
       { label: 'Revenue', val: fmt(d.revenue) },
-      { label: 'Total Users', val: d.totalUsers },
-      { label: 'New Today', val: d.newUsersToday },
-      { label: 'Active Buyers', val: d.activeSubs },
+      { label: 'Orders', val: d.totalOrders },
+      { label: 'Customers', val: d.customers },
+      { label: 'Leads', val: d.leads },
+      { label: 'Visitors Today', val: d.visitorsToday },
+      { label: 'New Users Today', val: d.newUsersToday },
     ].map(s => `<div class="admin-stat"><div class="admin-stat-val">${s.val}</div><div class="admin-stat-label">${s.label}</div></div>`).join('');
   }
 
@@ -173,13 +188,54 @@
   }
 
   // Users
+  let userFilter = '';
+  document.getElementById('userFilters').addEventListener('click', (e) => {
+    if (e.target.dataset.userStatus === undefined) return;
+    userFilter = e.target.dataset.userStatus;
+    document.querySelectorAll('#userFilters .filter-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    loadUsers();
+  });
+
   async function loadUsers() {
-    const res = await fetch('/api/admin/users');
+    const url = '/api/admin/users' + (userFilter ? '?status=' + userFilter : '');
+    const res = await fetch(url);
     const d = await res.json();
     document.getElementById('userRows').innerHTML = d.users.map(u => {
       const date = new Date(u.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
-      return `<tr><td style="font-family:monospace;color:var(--electric);">${u.uid}</td><td>${u.first_name} ${u.last_name}</td><td>${u.email}</td><td>${u.tier}</td><td style="color:var(--neon-purple);">${u.points_balance}</td><td>${date}</td></tr>`;
-    }).join('');
+      const statusCls = u.status === 'customer' ? 'status-delivered' : 'status-pending';
+      const country = u.country || '—';
+      const phone = u.phone || '—';
+      return `<tr>
+        <td style="font-family:monospace;color:var(--electric);">${u.uid}</td>
+        <td>${u.first_name} ${u.last_name}</td>
+        <td>${u.email}</td>
+        <td style="font-family:monospace;font-size:12px;">${phone}</td>
+        <td style="font-family:monospace;">${country}</td>
+        <td><span class="status-badge ${statusCls}">${u.status}</span></td>
+        <td>${u.paid_orders || 0}</td>
+        <td>${fmt(u.total_spent_pence || 0)}</td>
+        <td style="color:var(--neon-purple);">${u.points_balance}</td>
+        <td>${date}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="10" style="text-align:center;color:var(--text-dim);">No users</td></tr>';
+  }
+
+  async function loadVisitors() {
+    const res = await fetch('/api/admin/visitors');
+    const d = await res.json();
+    document.getElementById('visitorRows').innerHTML = d.visitors.map(v => {
+      const when = new Date(v.created_at).toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const became = v.uid ? `<span style="color:var(--electric);font-family:monospace;">${v.uid}</span>` : '<span style="color:var(--text-dim);">—</span>';
+      return `<tr>
+        <td>${when}</td>
+        <td style="font-family:monospace;">${v.country || '—'}</td>
+        <td>${v.city || '—'}</td>
+        <td style="font-family:monospace;font-size:11px;">${v.ip_address || '—'}</td>
+        <td style="font-size:12px;">${v.referrer ? v.referrer.slice(0, 30) : '—'}</td>
+        <td>${became}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);">No visitors yet</td></tr>';
   }
 
   // Products

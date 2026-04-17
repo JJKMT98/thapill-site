@@ -88,6 +88,15 @@ app.get('/api/products', async (_req, res) => {
   res.json(await Product.listActive());
 });
 
+const { ensureSession } = require('./src/middleware/session');
+app.get('/api/geo', ensureSession, (req, res) => {
+  res.json({
+    country: req.geo?.country || null,
+    city: req.geo?.city || null,
+    region: req.geo?.region || null,
+  });
+});
+
 app.use((_req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });

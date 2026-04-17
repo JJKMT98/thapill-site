@@ -23,14 +23,14 @@ router.get('/count', async (req, res) => {
 });
 
 router.post('/add', async (req, res) => {
-  const { product_id, quantity = 1 } = req.body;
-  if (!product_id) return res.status(400).json({ error: 'product_id is required' });
+  const { product_id, slug, quantity = 1 } = req.body;
+  if (!product_id && !slug) return res.status(400).json({ error: 'product_id or slug is required' });
 
-  const product = await Product.findById(product_id);
+  const product = slug ? await Product.findBySlug(slug) : await Product.findById(product_id);
   if (!product || !product.active) return res.status(404).json({ error: 'Product not found' });
 
-  if (req.user) await Cart.addForUser(req.user.id, product_id, quantity);
-  else await Cart.addForSession(req.sessionId, product_id, quantity);
+  if (req.user) await Cart.addForUser(req.user.id, product.id, quantity);
+  else await Cart.addForSession(req.sessionId, product.id, quantity);
 
   res.json(await fetchCart(req));
 });

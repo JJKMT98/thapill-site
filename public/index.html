@@ -164,9 +164,9 @@
   <span class="section-tag reveal">// Choose Your Play</span>
   <h2 class="section-title reveal reveal-delay-1">Lock in. Show up. Repeat.</h2>
   <div class="pricing-grid">
-    <div class="price-card reveal reveal-delay-1"><div class="price-label">Try It</div><div class="price-amount">&pound;40</div><div class="price-per">One-time purchase</div><div style="height:30px"></div><ul class="price-features"><li>30 capsules (1 month)</li><li>No commitment</li><li>Free UK shipping</li></ul><button class="price-btn secondary" data-add-product="1" data-default="Buy Once" data-hover="Add to Cart">Buy Once</button></div>
-    <div class="price-card featured reveal reveal-delay-2"><div class="price-popular">Most Popular</div><div class="price-label">Lock In</div><div class="price-amount">&pound;25<span>/mo</span></div><div class="price-per">Monthly subscription</div><div class="price-save">SAVE 37%</div><ul class="price-features"><li>30 capsules every month</li><li>Cancel anytime</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn primary" data-add-product="2" data-default="Lock In — £25/mo" data-hover="Add to Cart">Lock In &mdash; &pound;25/mo</button></div>
-    <div class="price-card reveal reveal-delay-3"><div class="price-label">3-Month Bulk</div><div class="price-amount">&pound;65</div><div class="price-per">&pound;21.67/month</div><div class="price-save">SAVE 46%</div><ul class="price-features"><li>90 capsules (3 months)</li><li>One payment</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn secondary" data-add-product="3" data-default="Buy 3 Months" data-hover="Add to Cart">Buy 3 Months</button></div>
+    <div class="price-card reveal reveal-delay-1"><div class="price-label">Try It</div><div class="price-amount">&pound;40</div><div class="price-per">One-time purchase</div><div style="height:30px"></div><ul class="price-features"><li>30 capsules (1 month)</li><li>No commitment</li><li>Free UK shipping</li></ul><button class="price-btn secondary" data-add-slug="try-it" data-default="Buy Once" data-hover="Add to Cart">Buy Once</button></div>
+    <div class="price-card featured reveal reveal-delay-2"><div class="price-popular">Most Popular</div><div class="price-label">Lock In</div><div class="price-amount">&pound;25<span>/mo</span></div><div class="price-per">Monthly subscription</div><div class="price-save">SAVE 37%</div><ul class="price-features"><li>30 capsules every month</li><li>Cancel anytime</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn primary" data-add-slug="lock-in" data-default="Lock In — £25/mo" data-hover="Add to Cart">Lock In &mdash; &pound;25/mo</button></div>
+    <div class="price-card reveal reveal-delay-3"><div class="price-label">3-Month Bulk</div><div class="price-amount">&pound;65</div><div class="price-per">&pound;21.67/month</div><div class="price-save">SAVE 46%</div><ul class="price-features"><li>90 capsules (3 months)</li><li>One payment</li><li>Free UK shipping</li><li>Earn reward points</li></ul><button class="price-btn secondary" data-add-slug="3-month-bulk" data-default="Buy 3 Months" data-hover="Add to Cart">Buy 3 Months</button></div>
   </div>
 </section>
 
@@ -202,11 +202,12 @@
 </footer>
 
 <script src="js/app.js"></script>
+<script src="js/toast.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/pilly.js"></script>
 <script>
-document.querySelectorAll('[data-add-product]').forEach(btn => {
+document.querySelectorAll('[data-add-slug]').forEach(btn => {
   // Hover-swap to "Add to Cart"
   if (btn.dataset.default && btn.dataset.hover) {
     btn.addEventListener('mouseenter', () => { btn.innerHTML = btn.dataset.hover; });
@@ -219,9 +220,10 @@ document.querySelectorAll('[data-add-product]').forEach(btn => {
     const prev = btn.innerHTML;
     btn.innerHTML = 'Adding...';
     try {
-      await window.thaPillCart.add(Number(btn.dataset.addProduct));
+      await window.thaPillCart.add({ slug: btn.dataset.addSlug });
     } catch (err) {
       if (window.thaPillToast) window.thaPillToast(err.message || 'Could not add to cart', 'error');
+      else alert(err.message || 'Could not add to cart');
     } finally {
       setTimeout(() => { btn.disabled = false; btn.innerHTML = btn.dataset.default || prev; }, 400);
     }

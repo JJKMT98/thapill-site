@@ -15,9 +15,22 @@ CREATE TABLE IF NOT EXISTS users (
     points_balance INTEGER DEFAULT 0,
     tier TEXT DEFAULT 'starter',
     email_verified INTEGER DEFAULT 0,
+    country TEXT,
+    city TEXT,
+    region TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    signup_source TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+-- Safe migrations for pre-existing databases
+ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS region TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ip_address TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS user_agent TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS signup_source TEXT;
 
 CREATE TABLE IF NOT EXISTS addresses (
     id SERIAL PRIMARY KEY,
@@ -136,9 +149,21 @@ CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     data TEXT,
+    country TEXT,
+    city TEXT,
+    region TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    referrer TEXT,
     expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS region TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ip_address TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_agent TEXT;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS referrer TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_uid ON users(uid);

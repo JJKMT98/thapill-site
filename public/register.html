@@ -192,6 +192,18 @@
         <input type="email" id="email" name="email" placeholder="you@example.com" required>
         <div class="form-error" id="email_error"></div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" placeholder="+44 7XXX XXXXXX" required>
+          <div class="form-error" id="phone_error"></div>
+        </div>
+        <div class="form-group">
+          <label for="country">Country</label>
+          <input type="text" id="country" name="country" placeholder="GB" maxlength="2" required>
+          <div class="form-error" id="country_error"></div>
+        </div>
+      </div>
       <div class="form-group">
         <label for="password">Password</label>
         <input type="password" id="password" name="password" placeholder="Min 8 characters" required minlength="8">
@@ -216,6 +228,14 @@
     input.value = refCode;
     document.getElementById('referralNote').innerHTML = 'Referral code <span>' + refCode + '</span> applied';
   }
+
+  // Prefill country from session geo
+  fetch('/api/geo').then(r => r.ok ? r.json() : null).then(d => {
+    if (d && d.country) {
+      const c = document.getElementById('country');
+      if (!c.value) c.value = d.country;
+    }
+  }).catch(() => {});
 
   const glyphs = 'ABCDEFGHJKMNPQRSTVWXYZ0123456789@#$%&';
   function scramble(el, final) {
@@ -260,6 +280,8 @@
     if (!data.first_name.trim()) { showError('first_name', 'Required'); valid = false; }
     if (!data.last_name.trim()) { showError('last_name', 'Required'); valid = false; }
     if (!data.email.trim() || !data.email.includes('@')) { showError('email', 'Valid email required'); valid = false; }
+    if (!data.phone || data.phone.trim().length < 6) { showError('phone', 'Valid phone required'); valid = false; }
+    if (!data.country || data.country.trim().length !== 2) { showError('country', '2-letter code (e.g. GB)'); valid = false; }
     if (!data.password || data.password.length < 8) { showError('password', 'Min 8 characters'); valid = false; }
 
     if (!valid) return;

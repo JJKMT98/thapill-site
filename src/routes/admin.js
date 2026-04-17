@@ -12,12 +12,15 @@ const db = require('../models/db');
 router.use(requireAuth, requireAdmin);
 
 router.get('/stats', async (_req, res) => {
-  const [totalOrders, revenue, totalUsers, newUsersTodayRow, activeSubsRow] = await Promise.all([
+  const [totalOrders, revenue, totalUsers, newUsersTodayRow, activeSubsRow, leadsRow, customersRow, sessionsRow] = await Promise.all([
     Order.countAll(),
     Order.revenueTotal(),
     User.count(),
     db.one("SELECT COUNT(*)::int as c FROM users WHERE DATE(created_at) = CURRENT_DATE"),
     db.one("SELECT COUNT(DISTINCT user_id)::int as c FROM orders WHERE status != 'cancelled' AND user_id IS NOT NULL"),
+    User.countByStatus('lead'),
+    User.countByStatus('customer'),
+    db.one("SELECT COUNT(*)::int AS c FROM sessions WHERE DATE(created_at) = CURRENT_DATE"),
   ]);
 
   res.json({
@@ -26,6 +29,9 @@ router.get('/stats', async (_req, res) => {
     totalUsers,
     newUsersToday: newUsersTodayRow.c,
     activeSubs: activeSubsRow.c,
+    leads: leadsRow.c,
+    customers: customersRow.c,
+    visitorsToday: sessionsRow.c,
   });
 });
 
@@ -69,8 +75,23 @@ router.patch('/orders/:id/status', async (req, res) => {
 router.get('/users', async (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 50, 200);
   const offset = Number(req.query.offset) || 0;
-  const users = await User.list(limit, offset);
+  const filter = req.query.status; // 'lead' | 'customer' | undefined
+  let users = await User.list(limit, offset);
+  if (filter === 'lead') users = users.filter(u => u.status === 'lead');
+  if (filter === 'customer') users = users.filter(u => u.status === 'customer');
   res.json({ users, total: await User.count() });
+});
+
+router.get('/visitors', async (req, res) => {
+  const limit = Math.min(Number(req.query.limit) || 50, 200);
+  const rows = await db.many(
+    `SELECT s.id, s.country, s.city, s.region, s.ip_address, s.referrer, s.created_at,
+            u.uid, u.email, u.first_name
+     FROM sessions s LEFT JOIN users u ON u.id = s.user_id
+     ORDER BY s.created_at DESC LIMIT $1`,
+    [limit]
+  );
+  res.json({ visitors: rows });
 });
 
 router.get('/users/:id', async (req, res) => {

@@ -126,6 +126,7 @@ describe('E2E: Full Customer Journey', () => {
     const res = await req('POST', '/api/auth/register', {
       email: 'javed@thapill.com', password: 'securepass123',
       first_name: 'Javed', last_name: 'Khan',
+      phone: '+447000111222', country: 'GB',
     }, javedCookie);
     assert.strictEqual(res.status, 201);
     javedUser = res.body.user;
@@ -255,6 +256,7 @@ describe('E2E: Full Customer Journey', () => {
       email: 'sarah@test.com', password: 'securepass123',
       first_name: 'Sarah', last_name: 'M',
       referral_code: 'JAVED-PILL',
+      phone: '+447000333444', country: 'US',
     });
     assert.strictEqual(res.status, 201);
     assert.ok(res.body.user.referred_by);
@@ -311,6 +313,7 @@ describe('E2E: Full Customer Journey', () => {
     const res = await req('POST', '/api/auth/register', {
       email: 'admin@thapill.com', password: 'adminpass123',
       first_name: 'Admin', last_name: 'User',
+      phone: '+447000555666', country: 'GB',
     });
     assert.strictEqual(res.status, 201);
     adminCookie = cookies(res.cookie);
@@ -497,5 +500,90 @@ describe('E2E: Full Customer Journey', () => {
     const res = await req('GET', '/api/referrals', null, sarahCookie);
     assert.strictEqual(res.body.stats.total, 0);
     assert.notStrictEqual(res.body.referral_code, 'JAVED-PILL');
+  });
+
+  // ── 18. Slug-based cart ─────────────────────────────────────
+  test('add to cart by slug works', async () => {
+    const res = await req('POST', '/api/cart/add', { slug: 'try-it' });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.items.length, 1);
+    assert.strictEqual(res.body.items[0].slug, 'try-it');
+  });
+
+  test('add to cart with unknown slug returns 404', async () => {
+    const res = await req('POST', '/api/cart/add', { slug: 'not-a-real-thing' });
+    assert.strictEqual(res.status, 404);
+  });
+
+  test('add to cart with no id or slug returns 400', async () => {
+    const res = await req('POST', '/api/cart/add', {});
+    assert.strictEqual(res.status, 400);
+  });
+
+  // ── 19. Geolocation endpoint ────────────────────────────────
+  test('GET /api/geo returns country object (may be null locally)', async () => {
+    const res = await req('GET', '/api/geo');
+    assert.strictEqual(res.status, 200);
+    assert.ok('country' in res.body);
+  });
+
+  // ── 20. Admin lead vs customer ──────────────────────────────
+  test('admin stats includes leads + customers + visitors counts', async () => {
+    const res = await req('GET', '/api/admin/stats', null, adminCookie);
+    assert.strictEqual(res.status, 200);
+    assert.ok(typeof res.body.leads === 'number');
+    assert.ok(typeof res.body.customers === 'number');
+    assert.ok(typeof res.body.visitorsToday === 'number');
+  });
+
+  test('admin users list includes status + phone + country', async () => {
+    const res = await req('GET', '/api/admin/users', null, adminCookie);
+    assert.strictEqual(res.status, 200);
+    const sample = res.body.users[0];
+    assert.ok(sample.uid);
+    assert.ok(['lead', 'customer'].includes(sample.status));
+    assert.ok('phone' in sample);
+    assert.ok('country' in sample);
+  });
+
+  test('admin leads filter returns only leads', async () => {
+    const res = await req('GET', '/api/admin/users?status=lead', null, adminCookie);
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.body.users.every(u => u.status === 'lead'));
+  });
+
+  test('admin customers filter returns only customers', async () => {
+    const res = await req('GET', '/api/admin/users?status=customer', null, adminCookie);
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.body.users.every(u => u.status === 'customer'));
+    assert.ok(res.body.users.length >= 1); // Javed + Sarah bought
+  });
+
+  test('admin visitors list endpoint works', async () => {
+    const res = await req('GET', '/api/admin/visitors', null, adminCookie);
+    assert.strictEqual(res.status, 200);
+    assert.ok(Array.isArray(res.body.visitors));
+  });
+
+  // ── 21. Lead → customer transition ──────────────────────────
+  test('fresh signup starts as a lead, becomes customer after purchase', async () => {
+    const reg = await req('POST', '/api/auth/register', {
+      email: 'lead@test.com', password: 'testpass12',
+      first_name: 'Lead', last_name: 'Test',
+      phone: '+447000777888', country: 'FR',
+    });
+    const leadCookie = cookies(reg.cookie);
+
+    const usersA = await req('GET', '/api/admin/users?status=lead', null, adminCookie);
+    assert.ok(usersA.body.users.find(u => u.email === 'lead@test.com'));
+
+    await req('POST', '/api/cart/add', { slug: 'try-it' }, leadCookie);
+    await req('POST', '/api/checkout/session', { address: { line1: '1 St', city: 'Paris', postcode: '75001' } }, leadCookie);
+
+    const usersB = await req('GET', '/api/admin/users?status=customer', null, adminCookie);
+    assert.ok(usersB.body.users.find(u => u.email === 'lead@test.com'), 'should now be a customer');
+
+    const usersC = await req('GET', '/api/admin/users?status=lead', null, adminCookie);
+    assert.ok(!usersC.body.users.find(u => u.email === 'lead@test.com'), 'should no longer appear in leads');
   });
 });

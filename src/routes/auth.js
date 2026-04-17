@@ -8,7 +8,10 @@ const Referral = require('../models/referral');
 const { generateUID, generateReferralCode } = require('../utils/uid');
 const { signJWT, generateToken, setAuthCookie, clearAuthCookie } = require('../utils/tokens');
 const { requireAuth } = require('../middleware/auth');
+const { ensureSession } = require('../middleware/session');
 const { sendVerification, sendPasswordReset } = require('../services/email');
+
+router.use(ensureSession);
 
 const BCRYPT_ROUNDS = 12;
 
@@ -51,9 +54,15 @@ router.post('/register', async (req, res) => {
       password_hash,
       first_name: first_name.trim(),
       last_name: last_name.trim(),
-      phone: phone || null,
+      phone: phone ? phone.trim() : null,
       referral_code: refCode,
       referred_by,
+      country: (req.body.country || req.geo?.country || null),
+      city: req.geo?.city || null,
+      region: req.geo?.region || null,
+      ip_address: req.geo?.ip || null,
+      user_agent: req.geo?.ua || null,
+      signup_source: req.body.source || 'website',
     });
 
     await Points.add({
