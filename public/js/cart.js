@@ -4,25 +4,25 @@
 <div class="cart-overlay" id="cartOverlay"></div>
 <div class="cart-panel" id="cartPanel">
   <div class="cart-header">
-    <h3>Your Cart</h3>
+    <h3 data-i18n="cart.title">Your Cart</h3>
     <button class="cart-close" id="cartClose" title="Continue shopping">&times;</button>
   </div>
   <div class="cart-body" id="cartBody">
     <div class="cart-empty" id="cartEmpty">
       <div class="cart-empty-icon">💊</div>
-      <p>Your cart is empty</p>
-      <a href="/#pricing" class="cart-shop-btn">Shop Now</a>
+      <p data-i18n="cart.empty">Your cart is empty</p>
+      <a href="/#pricing" class="cart-shop-btn" data-i18n="cart.shopNow">Shop Now</a>
     </div>
     <div class="cart-items" id="cartItems"></div>
   </div>
   <div class="cart-footer" id="cartFooter" style="display:none;">
     <div class="cart-summary">
-      <div class="cart-summary-row"><span>Subtotal</span><span id="cartSubtotal">£0.00</span></div>
+      <div class="cart-summary-row"><span data-i18n="cart.subtotal">Subtotal</span><span id="cartSubtotal">£0.00</span></div>
       <div class="cart-summary-row"><span id="cartShipLabel">Shipping</span><span id="cartShipping">—</span></div>
-      <div class="cart-summary-row cart-total"><span>Total</span><span id="cartTotal">£0.00</span></div>
+      <div class="cart-summary-row cart-total"><span data-i18n="cart.total">Total</span><span id="cartTotal">£0.00</span></div>
     </div>
     <div class="cart-ctas" id="cartCtas"></div>
-    <button class="cart-continue" id="cartContinue">Continue shopping</button>
+    <button class="cart-continue" id="cartContinue" data-i18n="cart.continue">Continue shopping</button>
   </div>
 </div>`;
 
@@ -87,6 +87,7 @@
   const wrapper = document.createElement('div');
   wrapper.innerHTML = PANEL_HTML;
   document.body.appendChild(wrapper);
+  if (window.Locale && window.Locale.applyToDOM) window.Locale.applyToDOM(wrapper);
 
   const overlay = document.getElementById('cartOverlay');
   const panel = document.getElementById('cartPanel');
@@ -159,20 +160,23 @@
     updateBadge(data.items.reduce((s, i) => s + i.quantity, 0));
   }
 
+  function tt(key, fallback) {
+    return (window.Locale && window.Locale.t) ? window.Locale.t(key, fallback) : fallback;
+  }
+
   function renderCtas() {
     if (authState) {
       cartCtas.innerHTML = `
-        <a href="/checkout" class="cart-cta primary">Checkout</a>
+        <a href="/checkout" class="cart-cta primary">${tt('cart.checkout', 'Checkout')}</a>
         <a href="/checkout?express=1" class="cart-cta express" title="Uses your saved shipping address">
-          <span>Express Checkout</span>
-          <span class="cart-cta-sub">· saved address</span>
+          <span>${tt('cart.express', 'Express Checkout')}</span>
         </a>`;
     } else {
       cartCtas.innerHTML = `
-        <a href="/register?next=/checkout" class="cart-cta primary">Create Account &amp; Checkout</a>
-        <a href="/checkout" class="cart-cta secondary">Checkout as Guest</a>
-        <div class="cart-cta-divider">or log in</div>
-        <a href="/login?next=/checkout" class="cart-cta secondary">Log In</a>`;
+        <a href="/register?next=/checkout" class="cart-cta primary">${tt('cart.createAcct', 'Create Account & Checkout')}</a>
+        <a href="/checkout" class="cart-cta secondary">${tt('cart.checkoutGuest', 'Checkout as Guest')}</a>
+        <div class="cart-cta-divider">${tt('cart.orLogin', 'or log in')}</div>
+        <a href="/login?next=/checkout" class="cart-cta secondary">${tt('nav.login', 'Log In')}</a>`;
     }
   }
 
@@ -189,9 +193,9 @@
 
     const shipPence = shippingRule ? shippingRule.price_pence : 0;
     const shipCountry = shippingRule?.country ? ' · ' + shippingRule.country : '';
-    cartShipLabel.textContent = 'Shipping' + shipCountry;
+    cartShipLabel.textContent = tt('cart.shipping', 'Shipping') + shipCountry;
     if (shipPence <= 0) {
-      cartShipping.textContent = 'Free';
+      cartShipping.textContent = tt('cart.free', 'Free');
       cartShipping.style.color = 'var(--electric)';
     } else {
       cartShipping.textContent = fmt(shipPence);
@@ -214,7 +218,7 @@
             </div>
             <div class="cart-item-price">${fmt(i.price_pence * i.quantity)}</div>
           </div>
-          <button class="cart-item-remove" data-remove="${i.id}">Remove</button>
+          <button class="cart-item-remove" data-remove="${i.id}">${tt('cart.remove', 'Remove')}</button>
         </div>
       </div>
     `).join('');
