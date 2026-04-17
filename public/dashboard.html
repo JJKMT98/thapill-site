@@ -254,6 +254,43 @@
     .order-btns { justify-content: flex-start; }
   }
 
+  /* Wishlist */
+  .wish-head { margin-bottom: 24px; }
+  .wish-head h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .wish-head p { color: var(--text-dim); font-size: 14px; }
+  .wish-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+  .wish-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; display: flex; flex-direction: column; gap: 10px;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s; position: relative; overflow: hidden;
+  }
+  .wish-card:hover { transform: translateY(-3px); border-color: rgba(255,68,170,0.25); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .wish-thumb {
+    position: relative; width: 100%; height: 120px;
+    background: radial-gradient(circle at center, rgba(255,68,170,0.08) 0%, transparent 65%);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px;
+  }
+  .wish-thumb img { max-height: 110px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 6px 20px rgba(0,0,0,0.4)); }
+  .wish-remove {
+    position: absolute; top: 8px; right: 8px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(3,3,6,0.75); border: 1px solid var(--border); color: var(--text-dim);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;
+    transition: color 0.2s, border-color 0.2s, transform 0.2s;
+  }
+  .wish-remove:hover { color: var(--neon-pink); border-color: var(--neon-pink); transform: scale(1.1); }
+  .wish-name { font-size: 17px; font-weight: 700; }
+  .wish-price { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--electric); }
+  .wish-btn-add {
+    margin-top: auto; padding: 11px 16px; border-radius: 9px;
+    background: var(--electric); color: var(--bg); border: 1px solid var(--electric);
+    font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .wish-btn-add:hover { transform: translateY(-1px); box-shadow: 0 0 22px rgba(0,255,136,0.4); }
+  .wish-btn-add.added { background: var(--neon-purple); border-color: var(--neon-purple); }
+
   @media (max-width: 900px) {
     .dash-hero-inner { grid-template-columns: 1fr; gap: 24px; }
     .hero-bottle-wrap { width: 220px; height: 260px; margin: 0 auto; }
@@ -377,9 +414,13 @@
     <div id="ordersContainer"></div>
   </section>
 
-  <!-- WISHLIST (stub) -->
+  <!-- WISHLIST -->
   <section class="tab-panel" id="tab-wishlist">
-    <div class="tab-stub">// wishlist // loading...</div>
+    <div class="wish-head">
+      <h2>your wishlist.</h2>
+      <p>aura bookmarks. lock 'em in when you're ready.</p>
+    </div>
+    <div id="wishContainer"></div>
   </section>
 
   <!-- REWARDS (stub) -->
@@ -399,7 +440,8 @@
   let DASH = null;
   let PRODUCTS = null;
   let WISH_IDS = new Set();
-  const loaded = { shop: false, orders: false };
+  const loaded = { shop: false, orders: false, wishlist: false };
+  let WISH_ITEMS = [];
 
   async function load() {
     try {
@@ -507,6 +549,7 @@
     window.scrollTo({ top: document.querySelector('.dash-tabs').offsetTop - 60, behavior: 'smooth' });
     if (name === 'shop' && !loaded.shop) { loadShop(); loaded.shop = true; }
     if (name === 'orders' && !loaded.orders) { renderOrders(); loaded.orders = true; }
+    if (name === 'wishlist') { loadWishlist(); loaded.wishlist = true; }
   }
   document.querySelectorAll('.dash-tab').forEach(t => {
     t.addEventListener('click', () => switchTab(t.dataset.tab));
@@ -721,7 +764,94 @@
       }
       const wEl = document.getElementById('statWishlist');
       if (wEl) wEl.textContent = WISH_IDS.size;
+      loaded.wishlist = false;
     } catch {}
+  }
+
+  // ── Wishlist ──────────────────────────────────────────────
+  async function loadWishlist() {
+    const el = document.getElementById('wishContainer');
+    el.innerHTML = '<div class="tab-stub">// loading wishlist...</div>';
+    try {
+      const res = await fetch('/api/wishlist');
+      if (!res.ok) throw 0;
+      const data = await res.json();
+      WISH_ITEMS = data.items || [];
+      WISH_IDS = new Set(WISH_ITEMS.map(i => i.product_id));
+      renderWishlist();
+    } catch {
+      el.innerHTML = '<div class="empty-state">Failed to load wishlist.</div>';
+    }
+  }
+
+  function renderWishlist() {
+    const el = document.getElementById('wishContainer');
+    if (!WISH_ITEMS.length) {
+      el.innerHTML = `
+        <div class="empty-state" id="wishEmpty">
+          <div id="wishEmptyPilly"></div>
+          <div style="margin-top:14px;font-size:15px;color:var(--text);">your wishlist is empty.</div>
+          <div style="margin-top:6px;">go lock something in →</div>
+          <button class="quick-btn primary" style="margin-top:20px;" id="wishEmptyCta">Browse Shop</button>
+        </div>`;
+      const holder = document.getElementById('wishEmptyPilly');
+      if (window.Pilly && window.Pilly.sleepyAt && holder) window.Pilly.sleepyAt(holder, { size: 160 });
+      const cta = document.getElementById('wishEmptyCta');
+      if (cta) cta.addEventListener('click', () => switchTab('shop'));
+      return;
+    }
+
+    el.innerHTML = '<div class="wish-grid">' + WISH_ITEMS.map(it => {
+      const img = it.image_url || '/thapill-assets/hero-bottle.png';
+      const price = formatResolved(it.resolved_price);
+      return `
+        <div class="wish-card" data-pid="${it.product_id}">
+          <div class="wish-thumb">
+            <img src="${img}" alt="${it.name}" onerror="this.onerror=null;this.src='/thapill-assets/hero-bottle.png'">
+            <button class="wish-remove" data-remove="${it.product_id}" aria-label="Remove from wishlist">×</button>
+          </div>
+          <div class="wish-name">${it.name}</div>
+          <div class="wish-price">${price}</div>
+          <button class="wish-btn-add" data-add-slug="${it.slug || ''}" data-add-pid="${it.product_id}">Add to Cart</button>
+        </div>`;
+    }).join('') + '</div>';
+
+    el.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', () => removeWish(Number(btn.dataset.remove)));
+    });
+    el.querySelectorAll('[data-add-pid]').forEach(btn => {
+      btn.addEventListener('click', () => addWishToCart(btn));
+    });
+  }
+
+  async function removeWish(pid) {
+    try {
+      await fetch('/api/wishlist/' + pid, { method: 'DELETE' });
+      WISH_ITEMS = WISH_ITEMS.filter(i => i.product_id !== pid);
+      WISH_IDS.delete(pid);
+      const wEl = document.getElementById('statWishlist');
+      if (wEl) wEl.textContent = WISH_IDS.size;
+      loaded.shop = false;
+      renderWishlist();
+    } catch {}
+  }
+
+  async function addWishToCart(btn) {
+    const orig = btn.textContent;
+    const slug = btn.dataset.addSlug;
+    const pid = Number(btn.dataset.addPid);
+    btn.disabled = true;
+    try {
+      const payload = slug ? { slug } : { product_id: pid };
+      if (window.thaPillCart && window.thaPillCart.add) await window.thaPillCart.add(payload);
+      else await fetch('/api/cart/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      btn.textContent = 'Added!';
+      btn.classList.add('added');
+      if (window.Pilly && window.Pilly.popUpAt) window.Pilly.popUpAt(btn, { variant: 'surprised', size: 42 });
+    } catch {
+      btn.textContent = 'Try again';
+    }
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('added'); btn.disabled = false; }, 1800);
   }
 
   // Count-up
