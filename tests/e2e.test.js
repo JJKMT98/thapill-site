@@ -5,6 +5,7 @@ const http = require('http');
 process.env.JWT_SECRET = 'e2e-test-secret';
 process.env.NODE_ENV = 'test';
 process.env.ADMIN_EMAIL = 'admin@thapill.com';
+process.env.MASTER_ADMIN_EMAIL = 'master@thapill.test';
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgres://thapill:thapill@localhost:5432/thapill_test';
 
 const app = require('../server');
@@ -752,5 +753,172 @@ describe('E2E: Full Customer Journey', () => {
     assert.strictEqual(lineItems.length, 1);
     assert.strictEqual(lineItems[0].unit_price_pence, 500000);
     assert.strictEqual(order.subtotal_pence, 500000);
+  });
+
+  // ── 23. Roles + Team management ─────────────────────────────
+  let ecomCookie = '';
+  let marketingCookie = '';
+  let ecomUserId = null;
+
+  test('bootstrap email (ADMIN_EMAIL) auto-promotes to owner on first login', async () => {
+    // adminCookie was created earlier from admin@thapill.com — confirm it's owner now
+    const res = await req('GET', '/api/auth/me', null, adminCookie);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.user.role, 'owner');
+    assert.strictEqual(res.body.user.is_admin, true);
+  });
+
+  test('regular customer has no role and is_admin=false', async () => {
+    const res = await req('GET', '/api/auth/me', null, javedCookie);
+    assert.strictEqual(res.status, 200);
+    assert.ok(!res.body.user.role);
+    assert.strictEqual(res.body.user.is_admin, false);
+  });
+
+  test('non-admin hits every /api/admin/* route with 403', async () => {
+    const routes = [
+      ['GET',   '/api/admin/stats'],
+      ['GET',   '/api/admin/orders'],
+      ['GET',   '/api/admin/users'],
+      ['GET',   '/api/admin/visitors'],
+      ['GET',   '/api/admin/products'],
+      ['GET',   '/api/admin/shipping'],
+      ['GET',   '/api/admin/pricing'],
+      ['GET',   '/api/admin/team'],
+    ];
+    for (const [method, path] of routes) {
+      const res = await req(method, path, null, javedCookie);
+      assert.strictEqual(res.status, 403, `${method} ${path} should be 403 for non-admin`);
+    }
+  });
+
+  test('owner can assign ecommerce_manager role to existing user', async () => {
+    const reg = await req('POST', '/api/auth/register', {
+      email: 'ecom@thapill.test', password: 'testpass123',
+      first_name: 'Eve', last_name: 'Ops',
+      phone: '+447100000000', country: 'GB',
+    });
+    ecomCookie = cookies(reg.cookie);
+    ecomUserId = reg.body.user.id;
+
+    const put = await req('PUT', '/api/admin/team',
+      { email: 'ecom@thapill.test', role: 'ecommerce_manager' }, adminCookie);
+    assert.strictEqual(put.status, 200);
+    assert.strictEqual(put.body.user.role, 'ecommerce_manager');
+  });
+
+  test('ecommerce_manager can read and write products/shipping/pricing', async () => {
+    const stats = await req('GET', '/api/admin/stats', null, ecomCookie);
+    assert.strictEqual(stats.status, 200);
+
+    const products = await req('GET', '/api/admin/products', null, ecomCookie);
+    assert.strictEqual(products.status, 200);
+
+    const shipping = await req('PUT', '/api/admin/shipping/CA',
+      { country_name: 'Canada', price_pence: 1200, blocked: 0 }, ecomCookie);
+    assert.strictEqual(shipping.status, 200);
+  });
+
+  test('ecommerce_manager cannot access team endpoints', async () => {
+    const res = await req('GET', '/api/admin/team', null, ecomCookie);
+    assert.strictEqual(res.status, 403);
+
+    const put = await req('PUT', '/api/admin/team',
+      { email: 'someone@x.com', role: 'support' }, ecomCookie);
+    assert.strictEqual(put.status, 403);
+  });
+
+  test('owner can assign marketing role; marketing role restrictions', async () => {
+    const reg = await req('POST', '/api/auth/register', {
+      email: 'marketing@thapill.test', password: 'testpass123',
+      first_name: 'Max', last_name: 'Marketer',
+      phone: '+447200000000', country: 'GB',
+    });
+    marketingCookie = cookies(reg.cookie);
+
+    await req('PUT', '/api/admin/team',
+      { email: 'marketing@thapill.test', role: 'marketing' }, adminCookie);
+
+    // Marketing CAN see visitors and users
+    const visitors = await req('GET', '/api/admin/visitors', null, marketingCookie);
+    assert.strictEqual(visitors.status, 200);
+    const users = await req('GET', '/api/admin/users', null, marketingCookie);
+    assert.strictEqual(users.status, 200);
+
+    // Marketing CANNOT read/write orders or pricing
+    const orders = await req('GET', '/api/admin/orders', null, marketingCookie);
+    assert.strictEqual(orders.status, 403);
+    const pricing = await req('GET', '/api/admin/pricing', null, marketingCookie);
+    assert.strictEqual(pricing.status, 403);
+    const shipWrite = await req('PUT', '/api/admin/shipping/NL',
+      { country_name: 'Netherlands', price_pence: 1500, blocked: 0 }, marketingCookie);
+    assert.strictEqual(shipWrite.status, 403);
+  });
+
+  test('PUT /api/admin/team rejects unknown role', async () => {
+    const res = await req('PUT', '/api/admin/team',
+      { email: 'ecom@thapill.test', role: 'god_mode' }, adminCookie);
+    assert.strictEqual(res.status, 400);
+  });
+
+  test('PUT /api/admin/team rejects email with no existing account', async () => {
+    const res = await req('PUT', '/api/admin/team',
+      { email: 'ghost@nobody.com', role: 'support' }, adminCookie);
+    assert.strictEqual(res.status, 404);
+  });
+
+  test('owner can revoke a team member', async () => {
+    const del = await req('DELETE', '/api/admin/team/' + ecomUserId, null, adminCookie);
+    assert.strictEqual(del.status, 200);
+
+    // ecom account now has no admin access
+    const check = await req('GET', '/api/admin/products', null, ecomCookie);
+    assert.strictEqual(check.status, 403);
+  });
+
+  test('owner cannot revoke their own access', async () => {
+    const me = await req('GET', '/api/auth/me', null, adminCookie);
+    const res = await req('DELETE', '/api/admin/team/' + me.body.user.id, null, adminCookie);
+    assert.strictEqual(res.status, 400);
+  });
+
+  test('master admin is force-promoted to owner on first login', async () => {
+    const reg = await req('POST', '/api/auth/register', {
+      email: 'master@thapill.test', password: 'testpass123',
+      first_name: 'Master', last_name: 'Admin',
+      phone: '+447300000000', country: 'GB',
+    });
+    const masterCookie = cookies(reg.cookie);
+    const me = await req('GET', '/api/auth/me', null, masterCookie);
+    assert.strictEqual(me.status, 200);
+    assert.strictEqual(me.body.user.role, 'owner');
+
+    // Even another owner cannot demote the master
+    const demote = await req('PUT', '/api/admin/team',
+      { email: 'master@thapill.test', role: 'support' }, adminCookie);
+    assert.strictEqual(demote.status, 400);
+    assert.match(demote.body.error, /master admin/i);
+
+    // And cannot be revoked
+    const masterId = me.body.user.id;
+    const revoke = await req('DELETE', '/api/admin/team/' + masterId, null, adminCookie);
+    assert.strictEqual(revoke.status, 400);
+    assert.match(revoke.body.error, /master admin/i);
+
+    // Master still has owner role after those rejected attempts
+    const still = await req('GET', '/api/auth/me', null, masterCookie);
+    assert.strictEqual(still.body.user.role, 'owner');
+  });
+
+  test('master admin is re-promoted if role is nulled in DB', async () => {
+    // Simulate a bad DB write nulling the role directly
+    await db.query("UPDATE users SET role = NULL WHERE email = 'master@thapill.test'");
+
+    // Next authed request force-restores owner
+    const reg = await req('POST', '/api/auth/login',
+      { email: 'master@thapill.test', password: 'testpass123' });
+    const masterCookie = cookies(reg.cookie);
+    const me = await req('GET', '/api/auth/me', null, masterCookie);
+    assert.strictEqual(me.body.user.role, 'owner');
   });
 });
