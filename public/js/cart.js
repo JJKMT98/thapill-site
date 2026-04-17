@@ -18,7 +18,7 @@
   <div class="cart-footer" id="cartFooter" style="display:none;">
     <div class="cart-summary">
       <div class="cart-summary-row"><span>Subtotal</span><span id="cartSubtotal">£0.00</span></div>
-      <div class="cart-summary-row"><span>Shipping</span><span class="cart-free">Free</span></div>
+      <div class="cart-summary-row"><span id="cartShipLabel">Shipping</span><span id="cartShipping">—</span></div>
       <div class="cart-summary-row cart-total"><span>Total</span><span id="cartTotal">£0.00</span></div>
     </div>
     <div class="cart-ctas" id="cartCtas"></div>
@@ -96,8 +96,18 @@
   const cartFooter = document.getElementById('cartFooter');
   const cartSubtotal = document.getElementById('cartSubtotal');
   const cartTotal = document.getElementById('cartTotal');
+  const cartShipping = document.getElementById('cartShipping');
+  const cartShipLabel = document.getElementById('cartShipLabel');
   const cartCtas = document.getElementById('cartCtas');
   const cartContinue = document.getElementById('cartContinue');
+
+  let shippingRule = null;
+  async function loadShipping() {
+    try {
+      const res = await fetch('/api/shipping');
+      if (res.ok) shippingRule = await res.json();
+    } catch { shippingRule = null; }
+  }
 
   let authState = null;
   function checkAuth() {
@@ -139,7 +149,8 @@
     const [cartRes] = await Promise.all([
       fetch('/api/cart').then(r => r.ok ? r.json() : Promise.reject(new Error('cart fetch failed'))),
       checkAuth(),
-    ]).catch(() => [{ items: [], total_pence: 0 }, null]);
+      loadShipping(),
+    ]).catch(() => [{ items: [], total_pence: 0 }, null, null]);
     const data = cartRes || { items: [], total_pence: 0 };
     renderItems(data.items, data.total_pence);
     updateBadge(data.items.reduce((s, i) => s + i.quantity, 0));
@@ -172,7 +183,18 @@
     cartEmpty.style.display = 'none';
     cartFooter.style.display = '';
     cartSubtotal.textContent = fmt(total);
-    cartTotal.textContent = fmt(total);
+
+    const shipPence = shippingRule ? shippingRule.price_pence : 0;
+    const shipCountry = shippingRule?.country ? ' · ' + shippingRule.country : '';
+    cartShipLabel.textContent = 'Shipping' + shipCountry;
+    if (shipPence <= 0) {
+      cartShipping.textContent = 'Free';
+      cartShipping.style.color = 'var(--electric)';
+    } else {
+      cartShipping.textContent = fmt(shipPence);
+      cartShipping.style.color = 'var(--text)';
+    }
+    cartTotal.textContent = fmt(total + shipPence);
     renderCtas();
 
     cartItems.innerHTML = items.map(i => `
@@ -249,9 +271,9 @@
         throw new Error(msg);
       }
       const data = await res.json();
+      await Promise.all([checkAuth(), loadShipping()]);
       renderItems(data.items, data.total_pence);
       updateBadge(data.items.reduce((s, i) => s + i.quantity, 0));
-      await checkAuth();
       if (data.items.length) renderCtas();
       open();
     },

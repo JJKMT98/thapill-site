@@ -89,9 +89,15 @@
             <input type="text" id="postcode" name="postcode" required placeholder="SW1A 1AA">
           </div>
         </div>
-        <div class="form-group">
-          <label for="county">County <span style="color:var(--text-dim);text-transform:none;">(optional)</span></label>
-          <input type="text" id="county" name="county" placeholder="Greater London">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="county">County <span style="color:var(--text-dim);text-transform:none;">(optional)</span></label>
+            <input type="text" id="county" name="county" placeholder="Greater London">
+          </div>
+          <div class="form-group">
+            <label for="country">Country</label>
+            <input type="text" id="country" name="country" required>
+          </div>
         </div>
 
         <button type="submit" class="checkout-btn" id="payBtn">Pay Now</button>
@@ -102,15 +108,46 @@
       <h3>Order Summary</h3>
       <div id="summaryItems"></div>
       <div class="summary-row"><span>Subtotal</span><span id="summarySubtotal"></span></div>
-      <div class="summary-row"><span>Shipping</span><span style="color:var(--electric);">Free</span></div>
+      <div class="summary-row"><span id="summaryShipLabel">Shipping</span><span id="summaryShipping">—</span></div>
       <div class="summary-total"><span>Total</span><span id="summaryTotal"></span></div>
     </div>
   </div>
 </div>
 
+<script src="/js/countries.js"></script>
 <script>
 (function() {
   const fmt = p => '£' + (p / 100).toFixed(2);
+  let cartSubtotal = 0;
+
+  async function refreshShipping() {
+    const countryInput = document.getElementById('country');
+    const code = (countryInput && countryInput.value) ? countryInput.value : '';
+    const res = await fetch('/api/shipping' + (code ? '?country=' + encodeURIComponent(code) : '')).catch(() => null);
+    const rule = res && res.ok ? await res.json() : { price_pence: 0, blocked: 0 };
+    const ship = rule.price_pence || 0;
+    document.getElementById('summaryShipLabel').textContent = 'Shipping' + (rule.country ? ' · ' + rule.country : '');
+    const shipEl = document.getElementById('summaryShipping');
+    if (rule.blocked) {
+      shipEl.textContent = 'Not available';
+      shipEl.style.color = 'var(--neon-pink)';
+      document.getElementById('payBtn').disabled = true;
+      const err = document.getElementById('globalError');
+      err.textContent = rule.message || `thaPill hasn't plugged into ${rule.country} yet — we'll DM the drop when we do.`;
+      err.classList.add('visible');
+    } else if (ship <= 0) {
+      shipEl.textContent = 'Free';
+      shipEl.style.color = 'var(--electric)';
+      document.getElementById('payBtn').disabled = false;
+      document.getElementById('globalError').classList.remove('visible');
+    } else {
+      shipEl.textContent = fmt(ship);
+      shipEl.style.color = 'var(--text)';
+      document.getElementById('payBtn').disabled = false;
+      document.getElementById('globalError').classList.remove('visible');
+    }
+    document.getElementById('summaryTotal').textContent = fmt(cartSubtotal + (rule.blocked ? 0 : ship));
+  }
 
   async function init() {
     // Check auth state
@@ -127,6 +164,7 @@
       window.location.href = '/';
       return;
     }
+    cartSubtotal = cart.total_pence;
 
     const itemsEl = document.getElementById('summaryItems');
     itemsEl.innerHTML = cart.items.map(i => `
@@ -137,7 +175,19 @@
       </div>
     `).join('');
     document.getElementById('summarySubtotal').textContent = fmt(cart.total_pence);
-    document.getElementById('summaryTotal').textContent = fmt(cart.total_pence);
+
+    // Wire up the searchable country picker + shipping recompute
+    const countryInput = document.getElementById('country');
+    if (countryInput && window.Countries) window.Countries.picker(countryInput, { placeholder: 'Select country' });
+    // Prefill from geo if empty
+    const geo = await fetch('/api/geo').then(r => r.ok ? r.json() : null).catch(() => null);
+    if (countryInput && geo && geo.country && !countryInput.value) {
+      countryInput.value = geo.country;
+      countryInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (countryInput) countryInput.addEventListener('change', refreshShipping);
+
+    await refreshShipping();
 
     // Cancelled?
     if (new URLSearchParams(window.location.search).get('cancelled') === '1') {
@@ -159,7 +209,7 @@
       city: document.getElementById('city').value,
       postcode: document.getElementById('postcode').value,
       county: document.getElementById('county').value || null,
-      country: 'GB',
+      country: (document.getElementById('country').value || 'GB').toUpperCase(),
     };
 
     try {
