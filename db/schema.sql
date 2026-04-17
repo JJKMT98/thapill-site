@@ -31,6 +31,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS region TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ip_address TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS user_agent TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS signup_source TEXT;
+-- Role-based admin access: null = customer, otherwise one of:
+-- owner | admin | ecommerce_manager | cfo | marketing | support
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT;
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 CREATE TABLE IF NOT EXISTS addresses (
     id SERIAL PRIMARY KEY,

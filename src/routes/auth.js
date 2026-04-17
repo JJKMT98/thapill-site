@@ -128,9 +128,7 @@ router.post('/logout', (_req, res) => {
 
 router.get('/me', requireAuth, (req, res) => {
   const { password_hash: _, ...safe } = req.user;
-  const { getAdminEmails } = require('../middleware/auth');
-  const isAdmin = getAdminEmails().includes((safe.email || '').toLowerCase());
-  res.json({ user: { ...safe, is_admin: isAdmin } });
+  res.json({ user: { ...safe, is_admin: !!safe.role } });
 });
 
 router.get('/verify/:token', async (req, res) => {

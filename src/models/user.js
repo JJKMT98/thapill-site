@@ -68,4 +68,15 @@ module.exports = {
                 WHERE NOT EXISTS (SELECT 1 FROM orders o
                   WHERE o.user_id = u.id AND o.status IN ('paid','processing','shipped','delivered'))`);
   },
+
+  // Role management
+  setRole: (id, role) =>
+    run('UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [role, id]),
+
+  listWithRole: () =>
+    many(
+      `SELECT id, uid, email, first_name, last_name, role, created_at
+       FROM users WHERE role IS NOT NULL
+       ORDER BY role = 'owner' DESC, role ASC, created_at ASC`
+    ),
 };
